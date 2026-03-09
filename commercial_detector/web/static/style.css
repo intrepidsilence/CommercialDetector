@@ -239,7 +239,6 @@ a:hover { text-decoration: underline; }
 }
 
 .state-card {
-  grid-column: 1 / -1;
   padding: 0;
   overflow: hidden;
 }
@@ -421,7 +420,13 @@ a:hover { text-decoration: underline; }
 /* Dashboard: Uptime                                                   */
 /* ------------------------------------------------------------------ */
 
-.uptime-card { text-align: center; }
+.uptime-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 .uptime-value { font-size: 1.8rem; font-weight: 700; color: var(--text); }
 
 /* ------------------------------------------------------------------ */

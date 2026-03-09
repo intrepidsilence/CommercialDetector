@@ -6,12 +6,17 @@
 {% block content %}
 <div class="dashboard-grid">
 
-  {# --- State Indicator Card --- #}
+  {# --- Top Row: State + Uptime side by side --- #}
   <section class="card state-card" id="state-card">
     <div class="state-indicator state-unknown" id="state-indicator">
       <span class="state-label" id="state-label">UNKNOWN</span>
       <span class="state-sub" id="state-sub">Waiting for data&hellip;</span>
     </div>
+  </section>
+
+  <section class="card uptime-card">
+    <h2 class="card-title">Uptime</h2>
+    <span class="uptime-value mono" id="uptime-value">00:00:00</span>
   </section>
 
   {# --- Score Gauge --- #}
@@ -82,11 +87,6 @@
     </div>
   </section>
 
-  {# --- Uptime --- #}
-  <section class="card uptime-card">
-    <h2 class="card-title">Uptime</h2>
-    <span class="uptime-value mono" id="uptime-value">00:00:00</span>
-  </section>
 
 </div>
 {% endblock %}
