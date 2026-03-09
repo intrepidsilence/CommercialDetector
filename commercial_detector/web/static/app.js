@@ -646,6 +646,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const detectBtn = document.getElementById('detect-devices-btn');
   const detectFeedback = document.getElementById('detect-feedback');
 
+  function fetchAndPopulateDevices() {
+    return fetch('/api/devices')
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(data => {
+        populateDeviceDropdown('capture-video_device', data.video);
+        populateDeviceDropdown('capture-audio_device', data.audio);
+        return data;
+      });
+  }
+
+  // Auto-detect devices on page load
+  fetchAndPopulateDevices().catch(() => {});
+
   if (detectBtn) {
     detectBtn.addEventListener('click', () => {
       detectBtn.disabled = true;
@@ -655,15 +671,8 @@ document.addEventListener('DOMContentLoaded', () => {
         detectFeedback.className = 'config-feedback';
       }
 
-      fetch('/api/devices')
-        .then(r => {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
-        })
+      fetchAndPopulateDevices()
         .then(data => {
-          populateDeviceDropdown('capture-video_device', data.video);
-          populateDeviceDropdown('capture-audio_device', data.audio);
-
           const total = (data.video || []).length + (data.audio || []).length;
           if (detectFeedback) {
             detectFeedback.textContent = total > 0
