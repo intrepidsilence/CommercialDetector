@@ -1,6 +1,8 @@
 """Tests for the Flask web server routes and SSE endpoint."""
 
 import json
+from unittest.mock import patch
+
 import pytest
 
 from commercial_detector.config import AppConfig
@@ -107,3 +109,25 @@ class TestRESTEndpoints:
         assert resp.status_code == 200
         data = json.loads(resp.data)
         assert data["status"] == "ok"
+
+
+class TestDeviceDiscovery:
+    def test_api_devices_returns_video_and_audio(self, client):
+        mock_video = [{"path": "/dev/video0", "name": "USB Capture"}]
+        mock_audio = [{"path": "hw:1,0", "name": "USB Audio"}]
+        with patch("commercial_detector.web.server.list_video_devices", return_value=mock_video), \
+             patch("commercial_detector.web.server.list_audio_devices", return_value=mock_audio):
+            resp = client.get("/api/devices")
+            assert resp.status_code == 200
+            data = resp.get_json()
+            assert data["video"] == mock_video
+            assert data["audio"] == mock_audio
+
+    def test_api_devices_empty(self, client):
+        with patch("commercial_detector.web.server.list_video_devices", return_value=[]), \
+             patch("commercial_detector.web.server.list_audio_devices", return_value=[]):
+            resp = client.get("/api/devices")
+            assert resp.status_code == 200
+            data = resp.get_json()
+            assert data["video"] == []
+            assert data["audio"] == []

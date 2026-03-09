@@ -18,6 +18,7 @@ from typing import Optional
 from flask import Flask, Response, jsonify, redirect, render_template, request, url_for
 
 from commercial_detector.config import AppConfig, _apply_dict
+from commercial_detector.device_discovery import list_audio_devices, list_video_devices
 from commercial_detector.web.state_manager import WebStateManager
 
 logger = logging.getLogger(__name__)
@@ -106,6 +107,13 @@ def create_app(
             return jsonify({"status": "ok"})
         except Exception as exc:
             return jsonify({"status": "error", "message": str(exc)}), 400
+
+    @app.route("/api/devices")
+    def api_devices():
+        return jsonify({
+            "video": list_video_devices(),
+            "audio": list_audio_devices(),
+        })
 
     @app.route("/api/system")
     def api_system():
