@@ -41,10 +41,10 @@ ask() {
     fi
 
     if [[ -n "$default" ]]; then
-        read -rp "  $prompt [$default]: " input
+        read -rp "  $prompt [$default]: " input < /dev/tty
         eval "$var_name=\"\${input:-$default}\""
     else
-        read -rp "  $prompt: " input
+        read -rp "  $prompt: " input < /dev/tty
         eval "$var_name=\"\$input\""
     fi
 }
@@ -57,7 +57,7 @@ ask_password() {
         return
     fi
 
-    read -rsp "  $prompt: " input
+    read -rsp "  $prompt: " input < /dev/tty
     echo ""
     eval "$var_name=\"\$input\""
 }
@@ -79,7 +79,7 @@ ask_yesno() {
         hint="y/N"
     fi
 
-    read -rp "  $prompt ($hint): " input
+    read -rp "  $prompt ($hint): " input < /dev/tty
     input="${input:-$default_yn}"
 
     if [[ "$input" =~ ^[Yy] ]]; then
@@ -192,7 +192,7 @@ echo "  Whisper:            $([ "$ENABLE_WHISPER" == "1" ] && echo "yes" || echo
 echo "  Systemd service:    $([ "$SETUP_SERVICE" == "1" ] && echo "yes (user: $SERVICE_USER)" || echo "no")"
 echo ""
 
-read -rp "  Proceed with installation? (Y/n): " confirm
+read -rp "  Proceed with installation? (Y/n): " confirm < /dev/tty
 confirm="${confirm:-y}"
 if [[ ! "$confirm" =~ ^[Yy] ]]; then
     echo "  Aborted."
