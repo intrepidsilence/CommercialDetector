@@ -1,0 +1,75 @@
+# CommercialDetector Configuration
+# All thresholds are tunable — adjust based on your TV source and capture hardware.
+
+capture:
+  video_device: "/dev/video0"
+  audio_device: "hw:1"
+  input_format: "mjpeg"
+  # Uncomment to test with a recorded file instead of live capture:
+  # input_file: "test_video.mp4"
+
+signal_source:
+  # silencedetect: true silence gaps between ads (not dialog pauses)
+  silence_noise_db: -42.0       # Noise floor (dB) — filters out dialog pauses
+  silence_duration: 0.5         # Minimum silence to detect (seconds)
+  # blackdetect: black frames at segment boundaries
+  black_min_duration: 0.05      # Minimum black frame duration
+  black_pixel_threshold: 0.10   # Pixel brightness threshold (0-1)
+  # scdet: scene change detection (supplementary signal)
+  scene_change_threshold: 10.0  # Score threshold for scene changes
+
+engine:
+  # Hold-off — skip first N seconds (avoids false triggers on intros/credits)
+  initial_hold_off: 60.0
+
+  # Debounce — minimum time in each state (prevents flapping)
+  min_commercial_duration: 15.0   # Reduced from 30s — scoring is more precise
+  min_program_duration: 60.0      # Reduced from 180s — negative signals give confidence
+
+  # --- Signal weights (positive = commercial evidence, negative = program evidence) ---
+  silence_weight: 5.0             # Silence gap between ads
+  black_frame_weight: 4.0         # Black frame at ad boundary
+  loudness_up_weight: 4.0         # Loudness jump (CALM Act — ads are louder)
+  loudness_down_weight: -3.0      # Loudness drop (program resumes at normal level)
+  scene_change_weight: 0.5        # Individual scene change (weak signal alone)
+  transcript_commercial_weight: 3.0   # Whisper detected commercial language
+  transcript_program_weight: -4.0     # Whisper detected program dialog
+
+  # --- Coincidence detection (silence + black within window = strong boundary signal) ---
+  coincidence_window: 2.0         # Seconds for silence+black co-occurrence
+  coincidence_multiplier: 1.5     # Boost factor for coincident signals
+
+  # --- Score dynamics ---
+  score_decay_rate: 0.6           # Points per second decay toward zero (tuned v4)
+  commercial_threshold: 8.0       # Score to enter COMMERCIAL state
+  program_threshold: -3.0         # Score to enter PROGRAM state
+  max_score: 15.0                 # Clamp ceiling (tuned v4: 25s gap × 0.6 = max_score → zero after break)
+  min_score: -10.0                # Clamp floor
+
+  # --- Loudness (EBU R128 via FFmpeg ebur128 filter) ---
+  loudness_shift_db: 5.0          # LUFS deviation from baseline to emit signal
+  loudness_ema_alpha: 0.02        # EMA smoothing factor for loudness baseline
+
+  # --- Scene change rate (rapid cuts = commercial-like content) ---
+  scene_rate_window: 30.0         # Seconds for rate calculation
+  scene_rate_threshold: 12.0      # Changes/min for "high rate" boost
+  scene_rate_boost: 2.0           # Extra score added when rate exceeds threshold
+
+mqtt:
+  broker_host: "localhost"
+  broker_port: 1883
+  topic_prefix: "commercial-detector"
+  client_id: "commercial-detector"
+  keepalive: 60
+  qos: 1
+
+# Whisper transcript analysis (optional — requires: pip install faster-whisper)
+transcript:
+  enabled: false                # Set to true to enable transcript-based detection
+  whisper_model: "tiny.en"      # Model size (tiny.en recommended for SBC)
+  chunk_duration: 10.0          # Audio chunk size (seconds) — 10s for reliable program detection
+  commercial_threshold: 2.0     # Min keyword score to emit TRANSCRIPT_COMMERCIAL
+  program_threshold: 2.0        # Min keyword score to emit TRANSCRIPT_PROGRAM
+  program_min_words: 25         # Words without commercial indicators -> program
+
+log_level: "INFO"
