@@ -122,25 +122,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const stateUpper = state.toUpperCase();
     const stateClass = 'state-' + state.toLowerCase();
 
-    const globalBadge = document.getElementById('global-state-badge');
-    if (globalBadge) {
-      globalBadge.textContent = stateUpper;
-      globalBadge.className = 'state-badge ' + stateClass;
-    }
-
     const headerBadge = document.getElementById('header-state-badge');
     if (headerBadge) {
       headerBadge.textContent = stateUpper;
-      headerBadge.className = 'state-badge ' + stateClass;
+      headerBadge.className = 'state-badge state-badge-lg ' + stateClass;
     }
-
-    const indicator = document.getElementById('state-indicator');
-    if (indicator) {
-      indicator.className = 'state-indicator ' + stateClass;
-    }
-
-    const label = document.getElementById('state-label');
-    if (label) label.textContent = stateUpper;
 
     const sub = document.getElementById('state-sub');
     if (sub) {
@@ -192,10 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (mqtt.connected) {
       dot.className = 'mqtt-dot mqtt-dot-connected';
-      label.textContent = 'MQTT: connected to ' + mqtt.broker;
+      if (label) label.textContent = 'MQTT';
     } else {
       dot.className = 'mqtt-dot mqtt-dot-error';
-      label.textContent = 'MQTT: ' + (mqtt.error || 'disconnected');
+      if (label) label.textContent = 'MQTT';
     }
   }
 
@@ -692,19 +678,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (data.whisper_running) {
       dot.className = 'whisper-dot whisper-dot-active';
-      if (label) label.textContent = 'Whisper: active';
+      if (label) label.textContent = 'Whisper';
     } else if (data.whisper_enabled === false) {
       dot.className = 'whisper-dot whisper-dot-inactive';
-      if (label) label.textContent = 'Whisper: disabled';
+      if (label) label.textContent = 'Whisper';
     } else {
       dot.className = 'whisper-dot whisper-dot-inactive';
-      if (label) label.textContent = 'Whisper: inactive';
+      if (label) label.textContent = 'Whisper';
     }
 
-    const textEl = document.getElementById('whisper-text');
-    if (textEl && data.whisper_text) {
-      textEl.textContent = '"' + data.whisper_text + '"';
+    // Update transcript output on dashboard
+    const output = document.getElementById('transcript-output');
+    if (output && data.whisper_text) {
+      appendTranscript(data.whisper_text);
     }
+  }
+
+  let _lastTranscriptText = '';
+  function appendTranscript(text) {
+    if (!text || text === _lastTranscriptText) return;
+    _lastTranscriptText = text;
+    const output = document.getElementById('transcript-output');
+    if (!output) return;
+
+    // Clear placeholder on first real text
+    if (output.querySelector('.text-dim')) {
+      output.innerHTML = '';
+    }
+
+    const span = document.createElement('span');
+    span.className = 'transcript-chunk';
+    span.textContent = text + ' ';
+    output.appendChild(span);
+
+    // Auto-scroll to bottom
+    output.scrollTop = output.scrollHeight;
   }
 
   // ----------------------------------------------------------------

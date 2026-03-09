@@ -165,22 +165,56 @@ a:hover { text-decoration: underline; }
   z-index: 50;
 }
 
-.page-title {
-  font-size: 1.1rem;
-  font-weight: 600;
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.state-badge-lg {
+  font-size: .85rem;
+  padding: 5px 16px;
+}
+
+.state-sub-header {
+  font-size: .8rem;
+  color: var(--text-dim);
 }
 
 .top-bar-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+}
+
+.header-status-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.header-status-label {
+  font-size: .75rem;
+  color: var(--text-dim);
+}
+
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.uptime-readout {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
 .score-readout {
   font-family: var(--mono);
   font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-dim);
+  font-weight: 700;
+  color: var(--text);
 }
 
 .content-area {
@@ -234,7 +268,7 @@ a:hover { text-decoration: underline; }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
@@ -306,7 +340,7 @@ a:hover { text-decoration: underline; }
 /* Dashboard: Score gauge                                              */
 /* ------------------------------------------------------------------ */
 
-.score-card { grid-column: 1 / -1; padding: 16px 22px; }
+.score-card { padding: 16px 22px; }
 
 .score-value-row {
   text-align: center;
@@ -372,8 +406,8 @@ a:hover { text-decoration: underline; }
 /* Dashboard: Chart                                                    */
 /* ------------------------------------------------------------------ */
 
-.chart-card { grid-column: 1 / 2; }
-.signal-log-card { grid-column: 2 / 4; }
+.chart-card { }
+.signal-log-card { }
 
 .chart-container {
   height: 280px;
@@ -429,36 +463,18 @@ a:hover { text-decoration: underline; }
 .counter-tx-program    .counter-value { color: var(--green); }
 
 /* ------------------------------------------------------------------ */
-/* Dashboard: Uptime                                                   */
+/* MQTT / status dots                                                  */
 /* ------------------------------------------------------------------ */
 
-.uptime-card {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.uptime-value { font-size: 1.8rem; font-weight: 700; color: var(--text); }
-
-.mqtt-status {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.85rem;
-}
 .mqtt-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
-.mqtt-dot-unknown { background: var(--muted); }
+.mqtt-dot-unknown { background: var(--text-dim); }
 .mqtt-dot-connected { background: #22c55e; }
 .mqtt-dot-error { background: #ef4444; }
-.mqtt-label { color: var(--muted); }
 
 /* ------------------------------------------------------------------ */
 /* Tables                                                              */
@@ -993,17 +1009,8 @@ select {
 }
 
 /* ------------------------------------------------------------------ */
-/* Dashboard: Whisper status                                           */
+/* Dashboard: Whisper / Transcript                                     */
 /* ------------------------------------------------------------------ */
-
-.whisper-status {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 0.8rem;
-}
 
 .whisper-dot {
   display: inline-block;
@@ -1014,8 +1021,21 @@ select {
 
 .whisper-dot-active { background: var(--green); }
 .whisper-dot-inactive { background: var(--text-dim); }
-.whisper-label { color: var(--text-dim); }
-.whisper-text { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; text-align: center; }
+
+.transcript-card { grid-column: 1 / -1; }
+
+.transcript-output {
+  font-family: var(--mono);
+  font-size: .88rem;
+  line-height: 1.7;
+  max-height: 120px;
+  overflow-y: auto;
+  color: var(--text);
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
 
 /* ------------------------------------------------------------------ */
 /* uPlot dark theme overrides                                          */
@@ -1059,13 +1079,18 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .score-card,
+  .counters-card,
   .chart-card,
   .signal-log-card,
+  .transcript-card,
   .system-card-row { grid-column: 1 / -1; }
 
   .system-health-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .top-bar-left .state-sub-header { display: none; }
 
   .config-fields {
     grid-template-columns: 1fr;

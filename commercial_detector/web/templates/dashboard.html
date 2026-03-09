@@ -6,26 +6,29 @@
 {% block content %}
 <div class="dashboard-grid">
 
-  {# === Row 1: State | Uptime+MQTT | Signal Counters === #}
-  <section class="card state-card" id="state-card">
-    <div class="state-indicator state-unknown" id="state-indicator">
-      <span class="state-label" id="state-label">UNKNOWN</span>
-      <span class="state-sub" id="state-sub">Waiting for data&hellip;</span>
+  {# === Row 1: Score Gauge | Signal Counters === #}
+  <section class="card score-card">
+    <h2 class="card-title">Score</h2>
+    <div class="score-value-row">
+      <span class="score-number mono" id="score-value">0.0</span>
     </div>
-  </section>
-
-  <section class="card uptime-card">
-    <h2 class="card-title">Uptime</h2>
-    <span class="uptime-value mono" id="uptime-value">00:00:00</span>
-    <div class="mqtt-status" id="mqtt-status">
-      <span class="mqtt-dot mqtt-dot-unknown" id="mqtt-dot"></span>
-      <span class="mqtt-label" id="mqtt-label">MQTT: checking&hellip;</span>
+    <div class="score-gauge">
+      <div class="score-gauge-track">
+        <div class="score-gauge-zone score-gauge-program"></div>
+        <div class="score-gauge-zone score-gauge-neutral"></div>
+        <div class="score-gauge-zone score-gauge-commercial"></div>
+        <div class="score-gauge-threshold score-gauge-thresh-program" style="left:28%;" title="Program threshold (-3.0)"></div>
+        <div class="score-gauge-threshold score-gauge-thresh-commercial" style="left:72%;" title="Commercial threshold (8.0)"></div>
+        <div class="score-gauge-pointer" id="score-pointer"></div>
+      </div>
+      <div class="score-gauge-labels">
+        <span class="mono">-10</span>
+        <span class="mono">-3</span>
+        <span class="mono">0</span>
+        <span class="mono">8</span>
+        <span class="mono">15</span>
+      </div>
     </div>
-    <div class="whisper-status">
-      <span class="whisper-dot whisper-dot-inactive" id="whisper-dot"></span>
-      <span class="whisper-label" id="whisper-label">Whisper: checking&hellip;</span>
-    </div>
-    <div class="whisper-text" id="whisper-text"></div>
   </section>
 
   <section class="card counters-card">
@@ -58,28 +61,11 @@
     </div>
   </section>
 
-  {# === Row 2: Score Gauge (full width) === #}
-  <section class="card score-card">
-    <h2 class="card-title">Score</h2>
-    <div class="score-value-row">
-      <span class="score-number mono" id="score-value">0.0</span>
-    </div>
-    <div class="score-gauge">
-      <div class="score-gauge-track">
-        <div class="score-gauge-zone score-gauge-program"></div>
-        <div class="score-gauge-zone score-gauge-neutral"></div>
-        <div class="score-gauge-zone score-gauge-commercial"></div>
-        <div class="score-gauge-threshold score-gauge-thresh-program" style="left:28%;" title="Program threshold (-3.0)"></div>
-        <div class="score-gauge-threshold score-gauge-thresh-commercial" style="left:72%;" title="Commercial threshold (8.0)"></div>
-        <div class="score-gauge-pointer" id="score-pointer"></div>
-      </div>
-      <div class="score-gauge-labels">
-        <span class="mono">-10</span>
-        <span class="mono">-3</span>
-        <span class="mono">0</span>
-        <span class="mono">8</span>
-        <span class="mono">15</span>
-      </div>
+  {# === Row 2: Whisper Transcript (full width) === #}
+  <section class="card transcript-card">
+    <h2 class="card-title">Live Transcript</h2>
+    <div class="transcript-output" id="transcript-output">
+      <span class="text-dim">Waiting for speech&hellip;</span>
     </div>
   </section>
 
@@ -128,13 +114,11 @@
   <section class="card system-card-row" id="system-cards">
     <h2 class="card-title">System Health</h2>
     <div class="system-health-grid">
-
       <div class="sys-metric">
         <div class="sys-metric-label">CPU Temp</div>
         <div class="sys-metric-value mono" id="temp-value">--</div>
         <div class="sys-metric-unit">&deg;C</div>
       </div>
-
       <div class="sys-metric">
         <div class="sys-metric-label">Memory</div>
         <div class="sys-metric-value mono" id="mem-pct">--%</div>
@@ -143,24 +127,20 @@
         </div>
         <div class="sys-metric-detail mono"><span id="mem-used">--</span> / <span id="mem-total">--</span> MB</div>
       </div>
-
       <div class="sys-metric">
         <div class="sys-metric-label">Load Avg</div>
         <div class="sys-metric-value mono"><span id="load-1">--</span></div>
         <div class="sys-metric-detail mono"><span id="load-5">--</span> / <span id="load-15">--</span></div>
       </div>
-
       <div class="sys-metric">
         <div class="sys-metric-label">Uptime</div>
         <div class="sys-metric-value mono" id="sys-uptime">--</div>
       </div>
-
       <div class="sys-metric">
         <div class="sys-metric-label">Disk</div>
         <div class="sys-metric-value mono" id="disk-used">--</div>
         <div class="sys-metric-detail mono">/ <span id="disk-total">--</span> GB</div>
       </div>
-
     </div>
   </section>
 

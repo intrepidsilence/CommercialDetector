@@ -38,10 +38,23 @@
 
   <main class="main-content">
     <header class="top-bar">
-      <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+      <div class="top-bar-left">
+        <span class="state-badge state-badge-lg state-unknown" id="header-state-badge">UNKNOWN</span>
+        <span class="state-sub-header" id="state-sub">Waiting for data&hellip;</span>
+      </div>
       <div class="top-bar-right">
-        <span class="state-badge state-unknown" id="header-state-badge">UNKNOWN</span>
-        <span class="score-readout" id="header-score">0.0</span>
+        <div class="header-status-group">
+          <span class="mqtt-dot mqtt-dot-unknown" id="mqtt-dot"></span>
+          <span class="header-status-label" id="mqtt-label">MQTT</span>
+        </div>
+        <div class="header-status-group">
+          <span class="whisper-dot whisper-dot-inactive" id="whisper-dot"></span>
+          <span class="header-status-label" id="whisper-label">Whisper</span>
+        </div>
+        <span class="header-divider"></span>
+        <span class="uptime-readout mono" id="uptime-value">00:00:00</span>
+        <span class="header-divider"></span>
+        <span class="score-readout mono" id="header-score">0.0</span>
       </div>
     </header>
     <div class="content-area">
