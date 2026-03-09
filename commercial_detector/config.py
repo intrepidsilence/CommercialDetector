@@ -38,7 +38,7 @@ class SignalSourceConfig:
     black_min_duration: float = 0.05  # Minimum black frame duration
     black_pixel_threshold: float = 0.10  # Pixel brightness threshold (0-1)
     # scdet (scene change detection) filter
-    scene_change_threshold: float = 10.0  # Scene change score threshold
+    scene_change_threshold: float = 30.0  # Scene change score threshold (10 too sensitive for live HDMI)
 
 
 @dataclass
