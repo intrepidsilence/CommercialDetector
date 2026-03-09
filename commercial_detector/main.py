@@ -102,15 +102,6 @@ def run(argv: list[str] | None = None) -> int:
     else:
         logger.info("Dry-run mode — MQTT publishing disabled")
 
-    # Web dashboard (optional)
-    web_state: Optional[WebStateManager] = None
-    if config.web.enabled and not args.no_web:
-        web_state = WebStateManager()
-        start_web_server(config, web_state, config_path=args.config)
-        logger.info("Web dashboard at http://%s:%d", config.web.host, config.web.port)
-    else:
-        logger.info("Web dashboard disabled")
-
     # Graceful shutdown
     shutdown_requested = False
 
@@ -129,6 +120,18 @@ def run(argv: list[str] | None = None) -> int:
     transcript_running = transcript_analyzer.start()
     if transcript_running:
         logger.info("Transcript analysis active")
+
+    # Web dashboard (optional — started after other components for status reporting)
+    web_state: Optional[WebStateManager] = None
+    if config.web.enabled and not args.no_web:
+        web_state = WebStateManager()
+        start_web_server(
+            config, web_state, config_path=args.config,
+            publisher=publisher, transcript=transcript_analyzer,
+        )
+        logger.info("Web dashboard at http://%s:%d", config.web.host, config.web.port)
+    else:
+        logger.info("Web dashboard disabled")
 
     # Transcript signals held back until FFmpeg catches up to their timestamp.
     # In file mode, audio-only FFmpeg races far ahead of the main FFmpeg with

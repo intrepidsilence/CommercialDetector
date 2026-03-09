@@ -98,6 +98,7 @@ python -m commercial_detector --input recording.mp4 --dry-run
 | `--config PATH` | Custom config file (default: `./config.yaml`) |
 | `--dry-run` | Log state changes without connecting to MQTT |
 | `--log-level LEVEL` | `DEBUG`, `INFO`, `WARNING`, or `ERROR` |
+| `--no-web` | Disable the web dashboard |
 
 ## MQTT Topics
 
@@ -136,6 +137,34 @@ All detection parameters are tunable in `config.yaml`. Key settings:
 | `transcript.enabled` | false | Enable Whisper transcript analysis |
 
 See [config.yaml](config.yaml) for the complete reference with comments.
+
+## Web Dashboard
+
+A built-in web dashboard provides real-time monitoring at `http://<device-ip>:8080`.
+
+### Features
+
+- **Live status**: Current state (program/commercial/unknown) with confidence score
+- **Score visualization**: Real-time scoring chart with threshold reference lines
+- **Signal feed**: Auto-scrolling table of all detection signals, filterable by type
+- **Transition history**: Full log of state changes with timestamps and confidence
+- **Configuration editor**: Adjust detection parameters from the browser
+- **System health**: CPU temperature, memory, disk, MQTT and Whisper status
+
+### Configuration
+
+The dashboard is enabled by default. Customize in `config.yaml`:
+
+```yaml
+web:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+```
+
+Disable at runtime with `--no-web`, or set `web.enabled: false` in config.
+
+Memory overhead is approximately 15 MB — well within the RPi 5 4 GB budget.
 
 ## Running as a Service
 
@@ -224,13 +253,13 @@ Logs are rotated daily (7 days retained, compressed) via logrotate.
 python -m pytest tests/ -v
 ```
 
-94 tests, runs in ~0.1 seconds. No external services required.
+119 tests, runs in ~0.3 seconds. No external services required.
 
 ## Hardware
 
 ### Recommended
 
-- **Raspberry Pi 5 (4 GB)** — ~580 MB total with Whisper enabled
+- **Raspberry Pi 5 (4 GB)** — ~595 MB total with Whisper + web dashboard enabled
 - USB 3.0 HDMI capture device
 - Active cooling (fan or heatsink) for sustained operation
 
@@ -250,6 +279,11 @@ commercial_detector/
   mqtt_publisher.py      # paho-mqtt v2.x publisher
   signal_source.py       # FFmpeg stderr parser (silencedetect + blackdetect + scdet + ebur128)
   transcript_analyzer.py # Optional Whisper-based keyword scoring
+  web/
+    server.py            # Flask app — routes, REST API, SSE endpoint
+    state_manager.py     # Thread-safe bridge between detection loop and web UI
+    templates/           # Jinja2 templates (dashboard, signals, history, config, system)
+    static/              # CSS + JavaScript (dark theme, uPlot charts, SSE client)
 docs/
   detection-system-overview.md   # Full technical documentation
   detection-system-overview.pdf  # PDF version
@@ -258,6 +292,8 @@ tests/
   test_signal_source.py          # 19 tests — FFmpeg line parsing
   test_transcript_analyzer.py    # 22 tests — keyword scoring
   test_mqtt_publisher.py         # 17 tests — MQTT publishing
+  test_web_state_manager.py      # 13 tests — web state management
+  test_web_server.py             # 12 tests — Flask routes and API
 ```
 
 ## License

@@ -109,7 +109,7 @@ def create_app(
 
     @app.route("/api/system")
     def api_system():
-        return jsonify(_get_system_info())
+        return jsonify(_get_system_info(app))
 
     # --- SSE ------------------------------------------------------------------
 
@@ -147,18 +147,23 @@ def _save_config(config: AppConfig, path: str) -> None:
         yaml.dump(d, f, default_flow_style=False, sort_keys=False)
 
 
-def _get_system_info() -> dict:
+def _get_system_info(app: Flask) -> dict:
+    """Gather system health metrics including component status."""
     import os
+    import shutil
 
     info: dict = {}
+
+    # CPU temperature (Linux — RPi thermal zone)
     try:
         with open("/sys/class/thermal/thermal_zone0/temp") as f:
             info["cpu_temp_c"] = int(f.read().strip()) / 1000.0
     except (FileNotFoundError, ValueError):
         info["cpu_temp_c"] = None
+
+    # Process memory (RSS)
     try:
         import resource
-
         usage_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         if os.uname().sysname == "Darwin":
             info["memory_mb"] = round(usage_kb / (1024 * 1024), 1)
@@ -166,11 +171,42 @@ def _get_system_info() -> dict:
             info["memory_mb"] = round(usage_kb / 1024, 1)
     except Exception:
         info["memory_mb"] = None
+
+    # Load average
     try:
         load = os.getloadavg()
         info["load_avg"] = [round(x, 2) for x in load]
     except OSError:
         info["load_avg"] = None
+
+    # Disk usage for working directory
+    try:
+        usage = shutil.disk_usage(".")
+        info["disk_total_gb"] = round(usage.total / (1024**3), 1)
+        info["disk_used_gb"] = round(usage.used / (1024**3), 1)
+        info["disk_free_gb"] = round(usage.free / (1024**3), 1)
+    except Exception:
+        info["disk_total_gb"] = None
+        info["disk_used_gb"] = None
+        info["disk_free_gb"] = None
+
+    # Component status from app.extensions
+    components = app.extensions.get("cd_components", {})
+
+    # MQTT publisher
+    publisher = components.get("publisher")
+    if publisher is not None:
+        info["mqtt_connected"] = getattr(publisher, "_connected", False)
+    else:
+        info["mqtt_connected"] = None  # dry-run mode
+
+    # Transcript analyzer
+    transcript = components.get("transcript")
+    if transcript is not None:
+        info["whisper_running"] = getattr(transcript, "is_running", False)
+    else:
+        info["whisper_enabled"] = False
+
     return info
 
 
@@ -178,11 +214,17 @@ def start_web_server(
     config: AppConfig,
     state_manager: WebStateManager,
     config_path: Optional[str] = None,
+    publisher=None,
+    transcript=None,
 ) -> None:
     """Start the Flask server on a background thread (non-blocking)."""
     import threading
 
     app = create_app(config, state_manager, config_path)
+    app.extensions["cd_components"] = {
+        "publisher": publisher,
+        "transcript": transcript,
+    }
     web_cfg = config.web
 
     werkzeug_log = logging.getLogger("werkzeug")
