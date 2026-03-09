@@ -72,4 +72,10 @@ transcript:
   program_threshold: 2.0        # Min keyword score to emit TRANSCRIPT_PROGRAM
   program_min_words: 25         # Words without commercial indicators -> program
 
+# Web dashboard (runs on port 8080)
+web:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+
 log_level: "INFO"

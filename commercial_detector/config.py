@@ -118,6 +118,14 @@ class TranscriptConfig:
 
 
 @dataclass
+class WebConfig:
+    """Web dashboard settings."""
+    enabled: bool = True
+    host: str = "0.0.0.0"
+    port: int = 8080
+
+
+@dataclass
 class AppConfig:
     """Top-level application configuration."""
     capture: CaptureConfig = field(default_factory=CaptureConfig)
@@ -125,6 +133,7 @@ class AppConfig:
     engine: EngineConfig = field(default_factory=EngineConfig)
     mqtt: MqttConfig = field(default_factory=MqttConfig)
     transcript: TranscriptConfig = field(default_factory=TranscriptConfig)
+    web: WebConfig = field(default_factory=WebConfig)
     log_level: str = "INFO"
 
 
