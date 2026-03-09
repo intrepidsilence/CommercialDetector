@@ -147,7 +147,7 @@ class SignalSource:
 
     def _build_cmd(self) -> list[str]:
         """Build the FFmpeg command with detection filters."""
-        cmd = ["ffmpeg", "-hide_banner"]
+        cmd = ["ffmpeg", "-hide_banner", "-y"]
 
         if self._capture_cfg.input_file:
             cmd += ["-i", self._capture_cfg.input_file]
