@@ -386,7 +386,8 @@ ROTATEEOF
         $SUDO tee /etc/systemd/system/commercial-detector.service > /dev/null << SERVICEEOF
 [Unit]
 Description=CommercialDetector - TV commercial break detection
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
