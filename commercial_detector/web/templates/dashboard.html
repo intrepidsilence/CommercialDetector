@@ -61,6 +61,7 @@
     </div>
   </section>
 
+  {% if whisper_enabled %}
   {# === Row 2: Whisper Transcript (full width) === #}
   <section class="card transcript-card">
     <h2 class="card-title">Live Transcript</h2>
@@ -68,6 +69,7 @@
       <span class="text-dim">Waiting for speech&hellip;</span>
     </div>
   </section>
+  {% endif %}
 
   {# === Row 3: Score Timeline (left) | Signal Log (right) === #}
   <section class="card chart-card">

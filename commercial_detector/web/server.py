@@ -45,6 +45,10 @@ def create_app(
     app.extensions["cd_state"] = state_manager
     app.extensions["cd_config_path"] = config_path
 
+    @app.context_processor
+    def inject_globals():
+        return {"whisper_enabled": config.transcript.enabled}
+
     # --- Page routes ----------------------------------------------------------
 
     @app.route("/")

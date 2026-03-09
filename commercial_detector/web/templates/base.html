@@ -41,10 +41,12 @@
           <span class="mqtt-dot mqtt-dot-unknown" id="mqtt-dot"></span>
           <span class="header-status-label" id="mqtt-label">MQTT</span>
         </div>
+        {% if whisper_enabled %}
         <div class="header-status-group">
           <span class="whisper-dot whisper-dot-inactive" id="whisper-dot"></span>
           <span class="header-status-label" id="whisper-label">Whisper</span>
         </div>
+        {% endif %}
         <span class="header-divider"></span>
         <span class="uptime-readout mono" id="uptime-value">00:00:00</span>
         <span class="header-divider"></span>
