@@ -19,6 +19,8 @@ from commercial_detector.detection_engine import DetectionEngine
 from commercial_detector.mqtt_publisher import MqttPublisher
 from commercial_detector.signal_source import SignalSource, SignalSourceError
 from commercial_detector.transcript_analyzer import TranscriptAnalyzer
+from commercial_detector.web.state_manager import WebStateManager
+from commercial_detector.web.server import start_web_server
 
 logger = logging.getLogger("commercial_detector")
 
@@ -62,6 +64,11 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Skip MQTT connection (just log state changes).",
     )
+    parser.add_argument(
+        "--no-web",
+        action="store_true",
+        help="Disable the web dashboard.",
+    )
     return parser.parse_args(argv)
 
 
@@ -94,6 +101,15 @@ def run(argv: list[str] | None = None) -> int:
         logger.info("MQTT publisher connected (topic prefix: %s)", config.mqtt.topic_prefix)
     else:
         logger.info("Dry-run mode — MQTT publishing disabled")
+
+    # Web dashboard (optional)
+    web_state: Optional[WebStateManager] = None
+    if config.web.enabled and not args.no_web:
+        web_state = WebStateManager()
+        start_web_server(config, web_state, config_path=args.config)
+        logger.info("Web dashboard at http://%s:%d", config.web.host, config.web.port)
+    else:
+        logger.info("Web dashboard disabled")
 
     # Graceful shutdown
     shutdown_requested = False
@@ -136,6 +152,8 @@ def run(argv: list[str] | None = None) -> int:
         )
         if publisher is not None:
             publisher.publish_transition(transition)
+        if web_state is not None:
+            web_state.push_transition(transition)
 
     try:
         with SignalSource(config) as source:
@@ -146,6 +164,14 @@ def run(argv: list[str] | None = None) -> int:
                     break
 
                 transition = engine.process(detection_signal)
+
+                # Push to web dashboard
+                if web_state is not None:
+                    web_state.push_signal(detection_signal)
+                    web_state.update_score(
+                        engine._state.commercial_score, detection_signal.timestamp
+                    )
+
                 if transition is not None:
                     _publish_transition(transition)
 
@@ -163,6 +189,11 @@ def run(argv: list[str] | None = None) -> int:
                 for ts in _pending_transcript:
                     if ts.timestamp <= current_pts:
                         transition = engine.process(ts)
+                        if web_state is not None:
+                            web_state.push_signal(ts)
+                            web_state.update_score(
+                                engine._state.commercial_score, ts.timestamp
+                            )
                         if transition is not None:
                             _publish_transition(transition)
                     else:
