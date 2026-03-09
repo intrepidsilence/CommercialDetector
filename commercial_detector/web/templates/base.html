@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}CommercialDetector{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css">
-  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-  <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
-  <script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
+  <link rel="stylesheet" href="/static/uPlot.min.css">
+  <script src="/static/uPlot.iife.min.js"></script>
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -33,11 +31,7 @@
         <span class="nav-icon">&#9881;</span> System
       </a>
     </nav>
-    <div class="sidebar-footer">
-      <div class="state-badge-wrapper">
-        <span class="state-badge state-unknown" id="global-state-badge">UNKNOWN</span>
-      </div>
-    </div>
+    <div class="sidebar-footer"></div>
   </aside>
 
   <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
