@@ -391,9 +391,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let chartData = [[], []];
 
   if (chartEl && typeof uPlot !== 'undefined') {
-    initChart();
-    fetchScoreHistory();
-    setInterval(fetchScoreHistory, 5000);
+    // Delay chart init slightly to ensure layout is computed
+    setTimeout(() => {
+      initChart();
+      fetchScoreHistory();
+      setInterval(fetchScoreHistory, 5000);
+    }, 100);
   }
 
   function initChart() {
@@ -414,14 +417,14 @@ document.addEventListener('DOMContentLoaded', () => {
           stroke: '#8b8fa3',
           grid: { stroke: 'rgba(42,45,58,0.8)', width: 1 },
           ticks: { stroke: '#2a2d3a', width: 1 },
-          font: '11px "SF Mono", monospace',
+          font: '11px monospace',
           values: (u, vals) => vals.map(v => formatTimestamp(v)),
         },
         {
           stroke: '#8b8fa3',
           grid: { stroke: 'rgba(42,45,58,0.8)', width: 1 },
           ticks: { stroke: '#2a2d3a', width: 1 },
-          font: '11px "SF Mono", monospace',
+          font: '11px monospace',
         },
       ],
       series: [
@@ -430,17 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
           label: 'Score',
           stroke: '#3b82f6',
           width: 2,
-          fill: (self) => {
-            const ctx = self.ctx;
-            const grd = ctx.createLinearGradient(
-              0, self.valToPos(SCORE_MAX, 'y'),
-              0, self.valToPos(SCORE_MIN, 'y')
-            );
-            grd.addColorStop(0, 'rgba(239,68,68,0.2)');
-            grd.addColorStop(0.5, 'rgba(59,130,246,0.05)');
-            grd.addColorStop(1, 'rgba(34,197,94,0.2)');
-            return grd;
-          },
+          fill: 'rgba(59,130,246,0.1)',
         },
       ],
       hooks: {
@@ -485,14 +478,18 @@ document.addEventListener('DOMContentLoaded', () => {
       },
     };
 
-    uplotChart = new uPlot(opts, chartData, chartEl);
+    try {
+      uplotChart = new uPlot(opts, chartData, chartEl);
 
-    const ro = new ResizeObserver(() => {
-      if (uplotChart && chartEl.clientWidth > 0) {
-        uplotChart.setSize({ width: chartEl.clientWidth, height: 300 });
-      }
-    });
-    ro.observe(chartEl);
+      const ro = new ResizeObserver(() => {
+        if (uplotChart && chartEl.clientWidth > 0) {
+          uplotChart.setSize({ width: chartEl.clientWidth, height: 300 });
+        }
+      });
+      ro.observe(chartEl);
+    } catch (e) {
+      console.error('uPlot init failed:', e);
+    }
   }
 
   function fetchScoreHistory() {
@@ -608,28 +605,63 @@ document.addEventListener('DOMContentLoaded', () => {
   // System page — HTMX afterSwap
   // ----------------------------------------------------------------
 
-  document.body.addEventListener('htmx:afterSwap', (e) => {
-    if (e.detail.target && e.detail.target.id === 'system-cards') {
-      updateSystemGauges();
-    }
-  });
+  function fetchSystemInfo() {
+    const systemCards = document.getElementById('system-cards');
+    if (!systemCards) return;
 
-  function updateSystemGauges() {
-    const tempArc = document.getElementById('temp-arc');
-    const tempValue = document.getElementById('temp-value');
-    if (tempArc && tempValue) {
-      const temp = parseFloat(tempValue.textContent);
-      if (!isNaN(temp)) {
-        const pct = Math.min(temp / 100, 1);
-        const circumference = 2 * Math.PI * 52;
-        tempArc.setAttribute('stroke-dasharray',
-          (pct * circumference) + ' ' + circumference);
-        tempArc.classList.remove('temp-ok', 'temp-warm', 'temp-hot');
-        if (temp >= 75) tempArc.classList.add('temp-hot');
-        else if (temp >= 60) tempArc.classList.add('temp-warm');
-        else tempArc.classList.add('temp-ok');
-      }
-    }
+    fetch('/api/system')
+      .then(r => r.json())
+      .then(data => {
+        // CPU Temperature
+        const tempValue = document.getElementById('temp-value');
+        const tempArc = document.getElementById('temp-arc');
+        if (tempValue && data.cpu_temp_c != null) {
+          tempValue.textContent = data.cpu_temp_c.toFixed(1);
+          const pct = Math.min(data.cpu_temp_c / 100, 1);
+          const circumference = 2 * Math.PI * 52;
+          tempArc.setAttribute('stroke-dasharray',
+            (pct * circumference) + ' ' + circumference);
+          tempArc.classList.remove('temp-ok', 'temp-warm', 'temp-hot');
+          if (data.cpu_temp_c >= 75) tempArc.classList.add('temp-hot');
+          else if (data.cpu_temp_c >= 60) tempArc.classList.add('temp-warm');
+          else tempArc.classList.add('temp-ok');
+        }
+
+        // Memory
+        const memBar = document.getElementById('mem-bar');
+        const memUsed = document.getElementById('mem-used');
+        const memTotal = document.getElementById('mem-total');
+        const memPctEl = document.getElementById('mem-pct');
+        if (data.mem_total_mb != null) {
+          if (memUsed) memUsed.textContent = data.mem_used_mb.toFixed(0) + ' MB';
+          if (memTotal) memTotal.textContent = data.mem_total_mb.toFixed(0) + ' MB';
+          if (memPctEl) memPctEl.textContent = data.mem_pct.toFixed(1) + '%';
+          if (memBar) memBar.style.width = data.mem_pct.toFixed(1) + '%';
+        }
+
+        // Load Average
+        if (data.load_avg) {
+          const load1 = document.getElementById('load-1');
+          const load5 = document.getElementById('load-5');
+          const load15 = document.getElementById('load-15');
+          if (load1) load1.textContent = data.load_avg[0].toFixed(2);
+          if (load5) load5.textContent = data.load_avg[1].toFixed(2);
+          if (load15) load15.textContent = data.load_avg[2].toFixed(2);
+        }
+
+        // System Uptime
+        const sysUptime = document.getElementById('sys-uptime');
+        if (sysUptime && data.system_uptime != null) {
+          sysUptime.textContent = formatUptime(data.system_uptime);
+        }
+      })
+      .catch(() => {});
+  }
+
+  // Poll system info if on the system page
+  if (document.getElementById('system-cards')) {
+    fetchSystemInfo();
+    setInterval(fetchSystemInfo, 5000);
   }
 
   // ----------------------------------------------------------------

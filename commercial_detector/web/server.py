@@ -188,6 +188,29 @@ def _get_system_info(app: Flask) -> dict:
     except Exception:
         info["memory_mb"] = None
 
+    # System memory (total + used from /proc/meminfo)
+    try:
+        with open("/proc/meminfo") as f:
+            meminfo = {}
+            for line in f:
+                parts = line.split()
+                if parts[0] in ("MemTotal:", "MemAvailable:"):
+                    meminfo[parts[0].rstrip(":")] = int(parts[1])
+            total_mb = meminfo.get("MemTotal", 0) / 1024
+            avail_mb = meminfo.get("MemAvailable", 0) / 1024
+            info["mem_total_mb"] = round(total_mb, 0)
+            info["mem_used_mb"] = round(total_mb - avail_mb, 0)
+            info["mem_pct"] = round((total_mb - avail_mb) / total_mb * 100, 1) if total_mb else 0
+    except (FileNotFoundError, ValueError):
+        pass
+
+    # System uptime
+    try:
+        with open("/proc/uptime") as f:
+            info["system_uptime"] = float(f.read().split()[0])
+    except (FileNotFoundError, ValueError):
+        info["system_uptime"] = None
+
     # Load average
     try:
         load = os.getloadavg()
