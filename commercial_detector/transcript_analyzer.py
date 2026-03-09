@@ -240,25 +240,31 @@ class TranscriptAnalyzer:
         logger.info("Transcript analyzer stopped")
 
     def _build_audio_cmd(self) -> list[str]:
-        """Build FFmpeg command for audio-only PCM extraction."""
+        """Build FFmpeg command for audio-only PCM extraction.
+
+        For USB capture cards, audio is only available when video is also
+        captured from the same device — ALSA alone returns silence. So for
+        live capture we open both video + audio inputs (like the main
+        SignalSource), then discard the video with -vn.
+        """
         cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error"]
 
         capture = self._config.capture
         if capture.input_file:
             cmd += ["-i", capture.input_file]
         else:
+            # Must open video + audio together for USB capture cards
+            cmd += [
+                "-f", "v4l2",
+                "-input_format", capture.input_format,
+                "-i", capture.video_device,
+            ]
             if capture.audio_device:
                 cmd += ["-f", "alsa", "-i", capture.audio_device]
-            else:
-                cmd += [
-                    "-f", "v4l2",
-                    "-input_format", capture.input_format,
-                    "-i", capture.video_device,
-                ]
 
         # Output: 16kHz mono signed 16-bit little-endian PCM to stdout
         cmd += [
-            "-vn",           # no video
+            "-vn",           # discard video
             "-ar", "16000",  # 16kHz sample rate (Whisper requirement)
             "-ac", "1",      # mono
             "-f", "s16le",   # raw PCM format
