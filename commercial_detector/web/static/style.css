@@ -684,6 +684,14 @@ a:hover { text-decoration: underline; }
   padding: 12px 20px 4px;
 }
 
+.config-subgroup-desc {
+  font-size: .75rem;
+  color: var(--dim);
+  padding: 0 20px 4px;
+  margin: 0;
+  line-height: 1.4;
+}
+
 .config-fields {
   padding: 8px 20px 18px;
   display: grid;

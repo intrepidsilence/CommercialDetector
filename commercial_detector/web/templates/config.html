@@ -27,7 +27,7 @@
             <input type="text" id="capture-video_device" name="capture.video_device"
                    value="{{ config.capture.video_device }}" data-restart>
           </div>
-          <span class="field-desc">V4L2 video device path <span class="restart-badge">restart</span></span>
+          <span class="field-desc">V4L2 video capture device (e.g. /dev/video0). Use Detect Devices to find available devices. <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="capture-audio_device">Audio Device</label>
@@ -38,7 +38,7 @@
             <input type="text" id="capture-audio_device" name="capture.audio_device"
                    value="{{ config.capture.audio_device }}" data-restart>
           </div>
-          <span class="field-desc">ALSA audio device <span class="restart-badge">restart</span></span>
+          <span class="field-desc">ALSA audio capture device (e.g. hw:0,0). Must match the audio interface of your HDMI capture card. <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field" style="grid-column: 1 / -1;">
           <button type="button" class="btn btn-primary" id="detect-devices-btn">Detect Devices</button>
@@ -48,13 +48,13 @@
           <label for="capture-input_format">Input Format</label>
           <input type="text" id="capture-input_format" name="capture.input_format"
                  value="{{ config.capture.input_format }}" data-restart>
-          <span class="field-desc">V4L2 pixel format <span class="restart-badge">restart</span></span>
+          <span class="field-desc">V4L2 pixel format from the capture card. Common values: mjpeg, yuyv422. MJPEG uses less USB bandwidth. <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="capture-input_file">Input File</label>
           <input type="text" id="capture-input_file" name="capture.input_file"
                  value="{{ config.capture.input_file or '' }}" data-restart>
-          <span class="field-desc">File path for testing (blank = live capture) <span class="restart-badge">restart</span></span>
+          <span class="field-desc">Path to a video file for offline testing. Leave blank for live HDMI capture. <span class="restart-badge">restart</span></span>
         </div>
       </div>
     </details>
@@ -68,35 +68,35 @@
           <input type="number" step="0.1" id="signal_source-silence_noise_db"
                  name="signal_source.silence_noise_db"
                  value="{{ config.signal_source.silence_noise_db }}" data-restart>
-          <span class="field-desc">Noise floor threshold for silencedetect <span class="restart-badge">restart</span></span>
+          <span class="field-desc">Audio level below this is considered silence. Lower values (-50) detect only true silence; higher values (-30) also catch quiet passages. Default -42 filters out dialog pauses. <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="signal_source-silence_duration">Silence Duration (s)</label>
           <input type="number" step="0.1" id="signal_source-silence_duration"
                  name="signal_source.silence_duration"
                  value="{{ config.signal_source.silence_duration }}" data-restart>
-          <span class="field-desc">Minimum silence length <span class="restart-badge">restart</span></span>
+          <span class="field-desc">Minimum duration of silence to trigger a detection event. Short values (0.3s) catch brief gaps between ads; longer values (1.0s) reduce false positives from dramatic pauses. <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="signal_source-black_min_duration">Black Min Duration (s)</label>
           <input type="number" step="0.01" id="signal_source-black_min_duration"
                  name="signal_source.black_min_duration"
                  value="{{ config.signal_source.black_min_duration }}" data-restart>
-          <span class="field-desc">Minimum black frame duration <span class="restart-badge">restart</span></span>
+          <span class="field-desc">Minimum black frame duration to count as a detection. Commercial boundaries typically insert 0.05-0.5s of black. Too low may catch dark scenes. <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="signal_source-black_pixel_threshold">Black Pixel Threshold</label>
           <input type="number" step="0.01" id="signal_source-black_pixel_threshold"
                  name="signal_source.black_pixel_threshold"
                  value="{{ config.signal_source.black_pixel_threshold }}" data-restart>
-          <span class="field-desc">Pixel brightness threshold (0-1) <span class="restart-badge">restart</span></span>
+          <span class="field-desc">Pixel brightness threshold (0.0-1.0). Pixels below this are considered black. Raise if dark scenes trigger false detections; lower if true black frames are missed. <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="signal_source-scene_change_threshold">Scene Change Threshold</label>
           <input type="number" step="0.1" id="signal_source-scene_change_threshold"
                  name="signal_source.scene_change_threshold"
                  value="{{ config.signal_source.scene_change_threshold }}" data-restart>
-          <span class="field-desc">Scene change score threshold <span class="restart-badge">restart</span></span>
+          <span class="field-desc">Score threshold for scene change detection (0-100). Lower values (10) detect subtle changes but are noisy; higher values (40+) only catch hard cuts. Default 30 works well for live HDMI. <span class="restart-badge">restart</span></span>
         </div>
       </div>
     </details>
@@ -106,159 +106,164 @@
       <summary class="config-section-title">Engine</summary>
 
       {# Weights #}
-      <h3 class="config-subgroup">Weights</h3>
+      <h3 class="config-subgroup">Signal Weights</h3>
+      <p class="config-subgroup-desc">How much each signal type pushes the score toward commercial (positive) or program (negative). Higher absolute values make that signal more influential.</p>
       <div class="config-fields">
         <div class="config-field">
           <label for="engine-silence_weight">Silence Weight</label>
           <input type="number" step="0.1" id="engine-silence_weight"
                  name="engine.silence_weight" value="{{ config.engine.silence_weight }}">
-          <span class="field-desc">Score added on SILENCE_END</span>
+          <span class="field-desc">Score added when a silence gap ends. Silence between segments is a strong commercial boundary marker.</span>
         </div>
         <div class="config-field">
           <label for="engine-black_frame_weight">Black Frame Weight</label>
           <input type="number" step="0.1" id="engine-black_frame_weight"
                  name="engine.black_frame_weight" value="{{ config.engine.black_frame_weight }}">
-          <span class="field-desc">Score added on BLACK_START</span>
+          <span class="field-desc">Score added when black frames are detected. Broadcasters insert black frames at commercial boundaries.</span>
         </div>
         <div class="config-field">
           <label for="engine-loudness_up_weight">Loudness Up Weight</label>
           <input type="number" step="0.1" id="engine-loudness_up_weight"
                  name="engine.loudness_up_weight" value="{{ config.engine.loudness_up_weight }}">
-          <span class="field-desc">Score added on loudness jump (ad start)</span>
+          <span class="field-desc">Score added when volume jumps up. Commercials are often louder than program content (CALM Act).</span>
         </div>
         <div class="config-field">
           <label for="engine-loudness_down_weight">Loudness Down Weight</label>
           <input type="number" step="0.1" id="engine-loudness_down_weight"
                  name="engine.loudness_down_weight" value="{{ config.engine.loudness_down_weight }}">
-          <span class="field-desc">Score added on loudness drop (program resumes)</span>
+          <span class="field-desc">Score added when volume drops. A negative value here pushes toward program state, signaling ad break is over.</span>
         </div>
         <div class="config-field">
           <label for="engine-scene_change_weight">Scene Change Weight</label>
           <input type="number" step="0.1" id="engine-scene_change_weight"
                  name="engine.scene_change_weight" value="{{ config.engine.scene_change_weight }}">
-          <span class="field-desc">Score per individual scene change</span>
+          <span class="field-desc">Score per individual scene change. Kept low since scene changes happen in both content and ads; the scene rate boost handles rapid cuts.</span>
         </div>
         <div class="config-field">
           <label for="engine-transcript_commercial_weight">Transcript Commercial Weight</label>
           <input type="number" step="0.1" id="engine-transcript_commercial_weight"
                  name="engine.transcript_commercial_weight" value="{{ config.engine.transcript_commercial_weight }}">
-          <span class="field-desc">Score on commercial transcript detection</span>
+          <span class="field-desc">Score added when Whisper detects commercial language ("call now", "limited time", etc). Requires Whisper enabled.</span>
         </div>
         <div class="config-field">
           <label for="engine-transcript_program_weight">Transcript Program Weight</label>
           <input type="number" step="0.1" id="engine-transcript_program_weight"
                  name="engine.transcript_program_weight" value="{{ config.engine.transcript_program_weight }}">
-          <span class="field-desc">Score on program transcript detection</span>
+          <span class="field-desc">Score added when Whisper detects sustained conversational speech without ad language. Negative value pushes toward program state.</span>
         </div>
       </div>
 
       {# Scoring #}
-      <h3 class="config-subgroup">Scoring</h3>
+      <h3 class="config-subgroup">Score Dynamics</h3>
+      <p class="config-subgroup-desc">Controls how the score accumulates, decays, and triggers state transitions.</p>
       <div class="config-fields">
         <div class="config-field">
           <label for="engine-score_decay_rate">Score Decay Rate (/s)</label>
           <input type="number" step="0.05" id="engine-score_decay_rate"
                  name="engine.score_decay_rate" value="{{ config.engine.score_decay_rate }}">
-          <span class="field-desc">Points per second decay toward zero</span>
+          <span class="field-desc">Points per second the score decays toward zero when no new signals arrive. Higher values = faster return to neutral. Too high causes false exits during commercial breaks.</span>
         </div>
         <div class="config-field">
           <label for="engine-commercial_threshold">Commercial Threshold</label>
           <input type="number" step="0.5" id="engine-commercial_threshold"
                  name="engine.commercial_threshold" value="{{ config.engine.commercial_threshold }}">
-          <span class="field-desc">Score to enter COMMERCIAL state</span>
+          <span class="field-desc">Score must reach this to enter COMMERCIAL state. Lower = faster entry but more false positives. A coincident silence+black scores ~13.5, so 8.0 allows single-event entry.</span>
         </div>
         <div class="config-field">
           <label for="engine-program_threshold">Program Threshold</label>
           <input type="number" step="0.5" id="engine-program_threshold"
                  name="engine.program_threshold" value="{{ config.engine.program_threshold }}">
-          <span class="field-desc">Score to enter PROGRAM state</span>
+          <span class="field-desc">Score must fall to this to return to PROGRAM state. More negative = harder to exit commercial (slower but fewer false exits).</span>
         </div>
         <div class="config-field">
           <label for="engine-max_score">Max Score</label>
           <input type="number" step="0.5" id="engine-max_score"
                  name="engine.max_score" value="{{ config.engine.max_score }}">
-          <span class="field-desc">Clamp ceiling</span>
+          <span class="field-desc">Score ceiling clamp. Prevents runaway accumulation during long ad breaks. Lower values allow faster exit when program resumes.</span>
         </div>
         <div class="config-field">
           <label for="engine-min_score">Min Score</label>
           <input type="number" step="0.5" id="engine-min_score"
                  name="engine.min_score" value="{{ config.engine.min_score }}">
-          <span class="field-desc">Clamp floor</span>
+          <span class="field-desc">Score floor clamp. Prevents excessive negative accumulation during long program segments.</span>
         </div>
         <div class="config-field">
           <label for="engine-initial_hold_off">Initial Hold-off (s)</label>
           <input type="number" step="1" id="engine-initial_hold_off"
                  name="engine.initial_hold_off" value="{{ config.engine.initial_hold_off }}">
-          <span class="field-desc">Ignore signals for first N seconds</span>
+          <span class="field-desc">Ignore all signals for the first N seconds after startup. Prevents false triggers during FFmpeg initialization and stream warmup.</span>
         </div>
         <div class="config-field">
           <label for="engine-min_commercial_duration">Min Commercial Duration (s)</label>
           <input type="number" step="1" id="engine-min_commercial_duration"
                  name="engine.min_commercial_duration" value="{{ config.engine.min_commercial_duration }}">
-          <span class="field-desc">Debounce: minimum time in COMMERCIAL</span>
+          <span class="field-desc">Once in COMMERCIAL state, stay for at least this long before allowing transition back. Prevents rapid flickering between states.</span>
         </div>
         <div class="config-field">
           <label for="engine-min_program_duration">Min Program Duration (s)</label>
           <input type="number" step="1" id="engine-min_program_duration"
                  name="engine.min_program_duration" value="{{ config.engine.min_program_duration }}">
-          <span class="field-desc">Debounce: minimum time in PROGRAM</span>
+          <span class="field-desc">Once in PROGRAM state, stay for at least this long. Prevents re-entering commercial during brief in-program transitions.</span>
         </div>
       </div>
 
       {# Coincidence #}
-      <h3 class="config-subgroup">Coincidence</h3>
+      <h3 class="config-subgroup">Coincidence Detection</h3>
+      <p class="config-subgroup-desc">When silence and black frames occur close together, their combined score is multiplied. This is the strongest commercial boundary signal.</p>
       <div class="config-fields">
         <div class="config-field">
           <label for="engine-coincidence_window">Coincidence Window (s)</label>
           <input type="number" step="0.1" id="engine-coincidence_window"
                  name="engine.coincidence_window" value="{{ config.engine.coincidence_window }}">
-          <span class="field-desc">Seconds for silence+black co-occurrence</span>
+          <span class="field-desc">Maximum gap between silence and black frame events to be considered coincident. Wider windows catch more pairs but may group unrelated events.</span>
         </div>
         <div class="config-field">
           <label for="engine-coincidence_multiplier">Coincidence Multiplier</label>
           <input type="number" step="0.1" id="engine-coincidence_multiplier"
                  name="engine.coincidence_multiplier" value="{{ config.engine.coincidence_multiplier }}">
-          <span class="field-desc">Score multiplier for coincident signals</span>
+          <span class="field-desc">Score multiplier applied when silence+black coincide. At 1.5x, a coincident pair scores (5+4)*1.5=13.5, crossing the default 8.0 threshold in one event.</span>
         </div>
       </div>
 
       {# Loudness #}
-      <h3 class="config-subgroup">Loudness</h3>
+      <h3 class="config-subgroup">Loudness Analysis</h3>
+      <p class="config-subgroup-desc">Tracks audio loudness (EBU R128) and emits signals when volume shifts significantly from the running average.</p>
       <div class="config-fields">
         <div class="config-field">
           <label for="engine-loudness_shift_db">Loudness Shift (dB)</label>
           <input type="number" step="0.5" id="engine-loudness_shift_db"
                  name="engine.loudness_shift_db" value="{{ config.engine.loudness_shift_db }}">
-          <span class="field-desc">LUFS deviation to emit LOUDNESS_SHIFT</span>
+          <span class="field-desc">LUFS deviation from baseline to trigger a loudness signal. Lower values (3) detect subtle volume changes; higher values (6+) only catch obvious jumps.</span>
         </div>
         <div class="config-field">
           <label for="engine-loudness_ema_alpha">Loudness EMA Alpha</label>
           <input type="number" step="0.005" id="engine-loudness_ema_alpha"
                  name="engine.loudness_ema_alpha" value="{{ config.engine.loudness_ema_alpha }}">
-          <span class="field-desc">EMA smoothing for loudness baseline</span>
+          <span class="field-desc">Smoothing factor for the loudness baseline (0-1). Smaller values (0.01) track long-term average; larger values (0.05) adapt faster to volume changes.</span>
         </div>
       </div>
 
       {# Scene Rate #}
-      <h3 class="config-subgroup">Scene Rate</h3>
+      <h3 class="config-subgroup">Scene Rate Boost</h3>
+      <p class="config-subgroup-desc">Commercials typically have rapid scene cuts (15-30+/min) vs program content (3-10/min). A bonus score is added when the rate exceeds the threshold.</p>
       <div class="config-fields">
         <div class="config-field">
           <label for="engine-scene_rate_window">Scene Rate Window (s)</label>
           <input type="number" step="1" id="engine-scene_rate_window"
                  name="engine.scene_rate_window" value="{{ config.engine.scene_rate_window }}">
-          <span class="field-desc">Seconds for rate calculation window</span>
+          <span class="field-desc">Sliding window for counting scene changes per minute. Longer windows smooth out bursts; shorter windows react faster.</span>
         </div>
         <div class="config-field">
           <label for="engine-scene_rate_threshold">Scene Rate Threshold</label>
           <input type="number" step="0.5" id="engine-scene_rate_threshold"
                  name="engine.scene_rate_threshold" value="{{ config.engine.scene_rate_threshold }}">
-          <span class="field-desc">Changes/min for "high rate" boost</span>
+          <span class="field-desc">Scene changes per minute to trigger the rate boost. 12/min is a good boundary between program content and fast-cut commercials.</span>
         </div>
         <div class="config-field">
           <label for="engine-scene_rate_boost">Scene Rate Boost</label>
           <input type="number" step="0.1" id="engine-scene_rate_boost"
                  name="engine.scene_rate_boost" value="{{ config.engine.scene_rate_boost }}">
-          <span class="field-desc">Extra score when scene rate is high</span>
+          <span class="field-desc">Extra score added on each scene change when the rate exceeds the threshold. Stacks with the base scene change weight.</span>
         </div>
       </div>
     </details>
@@ -271,49 +276,49 @@
           <label for="mqtt-broker_host">Broker Host</label>
           <input type="text" id="mqtt-broker_host" name="mqtt.broker_host"
                  value="{{ config.mqtt.broker_host }}">
-          <span class="field-desc">MQTT broker hostname</span>
+          <span class="field-desc">Hostname or IP of the MQTT broker. Use "localhost" for a local Mosquitto instance or a remote IP for a network broker.</span>
         </div>
         <div class="config-field">
           <label for="mqtt-broker_port">Broker Port</label>
           <input type="number" id="mqtt-broker_port" name="mqtt.broker_port"
                  value="{{ config.mqtt.broker_port }}">
-          <span class="field-desc">MQTT broker port</span>
+          <span class="field-desc">MQTT broker port. Default 1883 for unencrypted, 8883 for TLS.</span>
         </div>
         <div class="config-field">
           <label for="mqtt-topic_prefix">Topic Prefix</label>
           <input type="text" id="mqtt-topic_prefix" name="mqtt.topic_prefix"
                  value="{{ config.mqtt.topic_prefix }}">
-          <span class="field-desc">MQTT topic prefix</span>
+          <span class="field-desc">Base topic for all published messages. State changes publish to {prefix}/state, transitions to {prefix}/transition.</span>
         </div>
         <div class="config-field">
           <label for="mqtt-client_id">Client ID</label>
           <input type="text" id="mqtt-client_id" name="mqtt.client_id"
                  value="{{ config.mqtt.client_id }}">
-          <span class="field-desc">MQTT client identifier</span>
+          <span class="field-desc">Unique MQTT client identifier. Must be unique per broker if running multiple detectors.</span>
         </div>
         <div class="config-field">
           <label for="mqtt-keepalive">Keepalive (s)</label>
           <input type="number" id="mqtt-keepalive" name="mqtt.keepalive"
                  value="{{ config.mqtt.keepalive }}">
-          <span class="field-desc">MQTT keepalive interval</span>
+          <span class="field-desc">Seconds between keepalive pings to the broker. The broker marks the client offline if no ping is received within 1.5x this interval.</span>
         </div>
         <div class="config-field">
           <label for="mqtt-qos">QoS</label>
           <input type="number" id="mqtt-qos" name="mqtt.qos"
                  value="{{ config.mqtt.qos }}" min="0" max="2">
-          <span class="field-desc">MQTT quality of service (0, 1, or 2)</span>
+          <span class="field-desc">Quality of service level. 0 = fire-and-forget, 1 = at least once (recommended), 2 = exactly once (slower).</span>
         </div>
         <div class="config-field">
           <label for="mqtt-username">Username</label>
           <input type="text" id="mqtt-username" name="mqtt.username"
                  value="{{ config.mqtt.username or '' }}">
-          <span class="field-desc">Optional MQTT username</span>
+          <span class="field-desc">MQTT username for broker authentication. Leave blank if the broker allows anonymous connections.</span>
         </div>
         <div class="config-field">
           <label for="mqtt-password">Password</label>
           <input type="password" id="mqtt-password" name="mqtt.password"
                  value="{{ config.mqtt.password or '' }}">
-          <span class="field-desc">Optional MQTT password</span>
+          <span class="field-desc">MQTT password for broker authentication. Leave blank for anonymous access.</span>
         </div>
       </div>
     </details>
@@ -328,42 +333,42 @@
             <option value="true" {% if config.transcript.enabled %}selected{% endif %}>Yes</option>
             <option value="false" {% if not config.transcript.enabled %}selected{% endif %}>No</option>
           </select>
-          <span class="field-desc">Enable Whisper transcript analysis</span>
+          <span class="field-desc">Enable speech-to-text analysis using faster-whisper. Requires the faster-whisper package installed. Adds ~200MB RAM usage. <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="transcript-whisper_model">Whisper Model</label>
           <input type="text" id="transcript-whisper_model" name="transcript.whisper_model"
                  value="{{ config.transcript.whisper_model }}">
-          <span class="field-desc">Model size (tiny.en, base.en, small.en)</span>
+          <span class="field-desc">Whisper model size. tiny.en is fastest (~40MB, good for RPi); base.en is more accurate (~140MB); small.en is best quality (~460MB, may be slow on SBC). <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="transcript-chunk_duration">Chunk Duration (s)</label>
           <input type="number" step="1" id="transcript-chunk_duration"
                  name="transcript.chunk_duration" value="{{ config.transcript.chunk_duration }}">
-          <span class="field-desc">Audio chunk size in seconds</span>
+          <span class="field-desc">Length of each audio chunk sent to Whisper. Longer chunks (10-15s) give better context for scoring; shorter chunks (5s) react faster but may miss phrases.</span>
         </div>
         <div class="config-field">
           <label for="transcript-commercial_threshold">Commercial Threshold</label>
           <input type="number" step="0.1" id="transcript-commercial_threshold"
                  name="transcript.commercial_threshold" value="{{ config.transcript.commercial_threshold }}">
-          <span class="field-desc">Min score to emit TRANSCRIPT_COMMERCIAL</span>
+          <span class="field-desc">Minimum keyword match score to emit a commercial transcript signal. Lower values catch more ads but increase false positives from casual mentions.</span>
         </div>
         <div class="config-field">
           <label for="transcript-program_threshold">Program Threshold</label>
           <input type="number" step="0.1" id="transcript-program_threshold"
                  name="transcript.program_threshold" value="{{ config.transcript.program_threshold }}">
-          <span class="field-desc">Min score to emit TRANSCRIPT_PROGRAM</span>
+          <span class="field-desc">Minimum score to emit a program transcript signal. Triggered by sustained conversational speech without commercial keywords.</span>
         </div>
         <div class="config-field">
           <label for="transcript-program_min_words">Program Min Words</label>
           <input type="number" id="transcript-program_min_words"
                  name="transcript.program_min_words" value="{{ config.transcript.program_min_words }}">
-          <span class="field-desc">Words without commercial indicators -> program</span>
+          <span class="field-desc">Minimum word count in a chunk (without ad keywords) to classify as program speech. Higher values require more sustained dialog before signaling program.</span>
         </div>
       </div>
     </details>
 
-    {# --- Web (placeholder for future web config) --- #}
+    {# --- Web --- #}
     <details class="config-section">
       <summary class="config-section-title">Web</summary>
       <div class="config-fields">
@@ -374,7 +379,7 @@
             <option value="{{ lvl }}" {% if config.log_level == lvl %}selected{% endif %}>{{ lvl }}</option>
             {% endfor %}
           </select>
-          <span class="field-desc">Application log level</span>
+          <span class="field-desc">Application log verbosity. DEBUG shows every signal event; INFO shows state transitions and startup; WARNING+ for production.</span>
         </div>
       </div>
     </details>
