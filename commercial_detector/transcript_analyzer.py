@@ -171,11 +171,13 @@ class TranscriptAnalyzer:
     logs a warning and returns without starting the thread.
     """
 
-    def __init__(self, config: AppConfig, signal_queue: Queue) -> None:
+    def __init__(self, config: AppConfig, signal_queue: Queue,
+                 audio_fifo_path: Optional[str] = None) -> None:
         self._config = config
         self._transcript_config = config.transcript
         self._queue = signal_queue
         self._scorer = KeywordScorer(config.transcript)
+        self._audio_fifo_path = audio_fifo_path
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
         self._ffmpeg_proc: Optional[subprocess.Popen] = None
@@ -272,6 +274,28 @@ class TranscriptAnalyzer:
         ]
         return cmd
 
+    def _open_audio_stream(self):
+        """Open the audio source — FIFO from main FFmpeg, or own subprocess."""
+        if self._audio_fifo_path:
+            logger.info("Reading audio from FIFO: %s", self._audio_fifo_path)
+            # Open blocks until the writer (main FFmpeg) opens the other end
+            fifo_fd = open(self._audio_fifo_path, "rb")
+            return fifo_fd
+
+        # Fallback: launch own FFmpeg (only works for file input)
+        cmd = self._build_audio_cmd()
+        logger.info("Starting audio extraction: %s", " ".join(cmd))
+        try:
+            self._ffmpeg_proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+        except (FileNotFoundError, OSError) as exc:
+            logger.error("Failed to start audio FFmpeg: %s", exc)
+            return None
+        return self._ffmpeg_proc.stdout
+
     def _run(self) -> None:
         """Background thread main loop."""
         try:
@@ -294,18 +318,8 @@ class TranscriptAnalyzer:
             logger.exception("Failed to load Whisper model")
             return
 
-        # Launch audio FFmpeg
-        cmd = self._build_audio_cmd()
-        logger.info("Starting audio extraction: %s", " ".join(cmd))
-
-        try:
-            self._ffmpeg_proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-            )
-        except (FileNotFoundError, OSError) as exc:
-            logger.error("Failed to start audio FFmpeg: %s", exc)
+        audio_stream = self._open_audio_stream()
+        if audio_stream is None:
             return
 
         # Read and process audio chunks
@@ -314,61 +328,63 @@ class TranscriptAnalyzer:
         chunk_bytes = int(tc.chunk_duration * sample_rate * bytes_per_sample)
         audio_offset = 0.0  # Track position in the stream
 
-        assert self._ffmpeg_proc.stdout is not None
+        try:
+            while not self._stop_event.is_set():
+                # Read one chunk
+                raw = audio_stream.read(chunk_bytes)
+                if not raw:
+                    break  # EOF or process terminated
 
-        while not self._stop_event.is_set():
-            # Read one chunk
-            raw = self._ffmpeg_proc.stdout.read(chunk_bytes)
-            if not raw:
-                break  # EOF or process terminated
+                chunk_timestamp = audio_offset
+                audio_offset += len(raw) / (sample_rate * bytes_per_sample)
 
-            chunk_timestamp = audio_offset
-            audio_offset += len(raw) / (sample_rate * bytes_per_sample)
+                # Convert raw bytes to float32 numpy array for Whisper
+                try:
+                    import numpy as np
+                    samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+                except Exception:
+                    logger.debug("Failed to convert audio chunk at %.1fs", chunk_timestamp)
+                    continue
 
-            # Convert raw bytes to float32 numpy array for Whisper
-            try:
-                import numpy as np
-                samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
-            except Exception:
-                logger.debug("Failed to convert audio chunk at %.1fs", chunk_timestamp)
-                continue
+                # Transcribe
+                try:
+                    segments, _info = model.transcribe(
+                        samples,
+                        language="en",
+                        vad_filter=True,
+                        beam_size=1,
+                    )
+                    text = " ".join(seg.text.strip() for seg in segments)
+                except Exception:
+                    logger.debug("Whisper transcription failed at %.1fs", chunk_timestamp)
+                    continue
 
-            # Transcribe
-            try:
-                segments, _info = model.transcribe(
-                    samples,
-                    language="en",
-                    vad_filter=True,
-                    beam_size=1,
-                )
-                text = " ".join(seg.text.strip() for seg in segments)
-            except Exception:
-                logger.debug("Whisper transcription failed at %.1fs", chunk_timestamp)
-                continue
+                if not text.strip():
+                    continue
 
-            if not text.strip():
-                continue
+                self._last_text = text[:120]
+                logger.debug("Transcript @ %.1fs: %s", chunk_timestamp, text[:100])
 
-            self._last_text = text[:120]
-            logger.debug("Transcript @ %.1fs: %s", chunk_timestamp, text[:100])
+                # Score the transcript
+                signal_type, score = self._scorer.score(text)
 
-            # Score the transcript
-            signal_type, score = self._scorer.score(text)
-
-            if signal_type is not None:
-                signal = DetectionSignal(
-                    timestamp=chunk_timestamp,
-                    signal_type=signal_type,
-                    value=score,
-                )
-                self._queue.put(signal)
-                logger.info(
-                    "Transcript signal: %s @ %.1fs (score=%.1f) — %s",
-                    signal_type.value,
-                    chunk_timestamp,
-                    score,
-                    text[:80],
-                )
+                if signal_type is not None:
+                    signal = DetectionSignal(
+                        timestamp=chunk_timestamp,
+                        signal_type=signal_type,
+                        value=score,
+                    )
+                    self._queue.put(signal)
+                    logger.info(
+                        "Transcript signal: %s @ %.1fs (score=%.1f) — %s",
+                        signal_type.value,
+                        chunk_timestamp,
+                        score,
+                        text[:80],
+                    )
+        finally:
+            if self._audio_fifo_path and audio_stream:
+                audio_stream.close()
 
         logger.debug("Transcript analyzer thread exiting")
 

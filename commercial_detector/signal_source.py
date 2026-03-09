@@ -133,10 +133,11 @@ class SignalSource:
     on stderr, which we parse line-by-line.
     """
 
-    def __init__(self, config: AppConfig) -> None:
+    def __init__(self, config: AppConfig, audio_fifo_path: Optional[str] = None) -> None:
         self._capture_cfg: CaptureConfig = config.capture
         self._signal_cfg: SignalSourceConfig = config.signal_source
         self._engine_cfg: EngineConfig = config.engine
+        self._audio_fifo_path = audio_fifo_path
         self._proc: Optional[subprocess.Popen] = None
         self._started = False
         # Loudness baseline tracking (EMA of short-term LUFS)
@@ -181,6 +182,20 @@ class SignalSource:
             "-f", "null",
             "-",
         ]
+
+        # Optional: tee raw audio to a FIFO for the transcript analyzer.
+        # This avoids needing a second FFmpeg process (V4L2/ALSA are
+        # exclusive — only one process can open the capture device).
+        if self._audio_fifo_path:
+            audio_input = "1:a" if not self._capture_cfg.input_file else "0:a"
+            cmd += [
+                "-map", audio_input,
+                "-ar", "16000",
+                "-ac", "1",
+                "-f", "s16le",
+                self._audio_fifo_path,
+            ]
+
         return cmd
 
     def start(self) -> None:

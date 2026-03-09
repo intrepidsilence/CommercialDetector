@@ -114,9 +114,26 @@ def run(argv: list[str] | None = None) -> int:
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
 
+    # Audio FIFO for sharing audio from main FFmpeg to transcript analyzer.
+    # USB capture cards only allow one process to open the device, so the
+    # main FFmpeg tees its audio to this FIFO.
+    import os
+    import tempfile
+    audio_fifo_path: Optional[str] = None
+    if config.transcript.enabled and not config.capture.input_file:
+        audio_fifo_path = os.path.join(tempfile.gettempdir(), "cd-whisper-audio.fifo")
+        try:
+            os.mkfifo(audio_fifo_path)
+        except FileExistsError:
+            os.remove(audio_fifo_path)
+            os.mkfifo(audio_fifo_path)
+        logger.info("Audio FIFO created at %s", audio_fifo_path)
+
     # Transcript analyzer (optional — requires faster-whisper)
     transcript_queue: Queue = Queue()
-    transcript_analyzer = TranscriptAnalyzer(config, transcript_queue)
+    transcript_analyzer = TranscriptAnalyzer(
+        config, transcript_queue, audio_fifo_path=audio_fifo_path,
+    )
     transcript_running = transcript_analyzer.start()
     if transcript_running:
         logger.info("Transcript analysis active")
@@ -164,7 +181,7 @@ def run(argv: list[str] | None = None) -> int:
         """Run the signal source loop once. Returns on source exit or error."""
         nonlocal last_heartbeat, signal_count
         try:
-            with SignalSource(config) as source:
+            with SignalSource(config, audio_fifo_path=audio_fifo_path) as source:
                 logger.info("Signal source started, entering detection loop")
 
                 for detection_signal in source:
@@ -248,6 +265,8 @@ def run(argv: list[str] | None = None) -> int:
         if publisher is not None:
             publisher.disconnect()
             logger.info("MQTT publisher disconnected")
+        if audio_fifo_path and os.path.exists(audio_fifo_path):
+            os.remove(audio_fifo_path)
 
     logger.info("CommercialDetector stopped after processing %d signals", signal_count)
     return 0
