@@ -5,28 +5,18 @@
 # Usage:
 #   curl -sSL https://raw.githubusercontent.com/intrepidsilence/CommercialDetector/main/install.sh | bash
 #
-# Options (via environment variables):
-#   INSTALL_DIR=/opt/commercial-detector   # Installation directory
-#   ENABLE_WHISPER=1                       # Install faster-whisper for transcript analysis
-#   SETUP_SERVICE=1                        # Create and enable systemd service
-#   SERVICE_USER=pi                        # User to run the service as
-#   MQTT_HOST=broker.example.com          # Remote MQTT broker hostname
-#   MQTT_PORT=1883                         # Remote MQTT broker port
-#   MQTT_USERNAME=user                     # MQTT username (optional)
-#   MQTT_PASSWORD=pass                     # MQTT password (optional)
+# For non-interactive installs, set environment variables to skip prompts:
+#   INSTALL_DIR=/opt/commercial-detector
+#   ENABLE_WHISPER=1
+#   SETUP_SERVICE=1
+#   SERVICE_USER=pi
+#   MQTT_HOST=broker.example.com
+#   MQTT_PORT=1883
+#   MQTT_USERNAME=user
+#   MQTT_PASSWORD=pass
 #
 set -euo pipefail
 
-# --- Configuration -----------------------------------------------------------
-
-INSTALL_DIR="${INSTALL_DIR:-/opt/commercial-detector}"
-ENABLE_WHISPER="${ENABLE_WHISPER:-0}"
-SETUP_SERVICE="${SETUP_SERVICE:-0}"
-SERVICE_USER="${SERVICE_USER:-$(whoami)}"
-MQTT_HOST="${MQTT_HOST:-}"
-MQTT_PORT="${MQTT_PORT:-1883}"
-MQTT_USERNAME="${MQTT_USERNAME:-}"
-MQTT_PASSWORD="${MQTT_PASSWORD:-}"
 REPO_URL="https://github.com/intrepidsilence/CommercialDetector.git"
 
 # --- Helpers -----------------------------------------------------------------
@@ -40,12 +30,78 @@ check_cmd() {
     command -v "$1" &>/dev/null
 }
 
-# --- Pre-flight checks -------------------------------------------------------
+ask() {
+    # ask VAR_NAME "prompt" "default"
+    # Skips prompt if env var is already set
+    local var_name="$1" prompt="$2" default="${3:-}"
+    local current="${!var_name:-}"
 
-info "CommercialDetector Installer"
+    if [[ -n "$current" ]]; then
+        return
+    fi
+
+    if [[ -n "$default" ]]; then
+        read -rp "  $prompt [$default]: " input
+        eval "$var_name=\"\${input:-$default}\""
+    else
+        read -rp "  $prompt: " input
+        eval "$var_name=\"\$input\""
+    fi
+}
+
+ask_password() {
+    local var_name="$1" prompt="$2"
+    local current="${!var_name:-}"
+
+    if [[ -n "$current" ]]; then
+        return
+    fi
+
+    read -rsp "  $prompt: " input
+    echo ""
+    eval "$var_name=\"\$input\""
+}
+
+ask_yesno() {
+    # ask_yesno VAR_NAME "prompt" "default_yn"
+    # Sets VAR_NAME to "1" or "0"
+    local var_name="$1" prompt="$2" default_yn="${3:-n}"
+    local current="${!var_name:-}"
+
+    if [[ -n "$current" ]]; then
+        return
+    fi
+
+    local hint
+    if [[ "$default_yn" == "y" ]]; then
+        hint="Y/n"
+    else
+        hint="y/N"
+    fi
+
+    read -rp "  $prompt ($hint): " input
+    input="${input:-$default_yn}"
+
+    if [[ "$input" =~ ^[Yy] ]]; then
+        eval "$var_name=1"
+    else
+        eval "$var_name=0"
+    fi
+}
+
+# --- Banner ------------------------------------------------------------------
+
+echo ""
+printf "\033[1;36m"
+echo "  ╔══════════════════════════════════════════════╗"
+echo "  ║        CommercialDetector Installer          ║"
+echo "  ║   Real-time TV commercial break detection    ║"
+echo "  ╚══════════════════════════════════════════════╝"
+printf "\033[0m"
 echo ""
 
-# Detect OS
+# --- Detect OS ---------------------------------------------------------------
+
 if [[ -f /etc/os-release ]]; then
     . /etc/os-release
     OS_ID="${ID:-unknown}"
@@ -59,8 +115,94 @@ else
 fi
 
 info "Detected OS: $OS_NAME"
+echo ""
 
-# Check for root/sudo when installing to system paths
+# --- Interactive configuration -----------------------------------------------
+
+info "Configuration"
+echo ""
+echo "  Press Enter to accept defaults shown in [brackets]."
+echo ""
+
+# Installation directory
+INSTALL_DIR="${INSTALL_DIR:-}"
+ask INSTALL_DIR "Installation directory" "/opt/commercial-detector"
+
+# MQTT broker
+echo ""
+info "MQTT Broker"
+echo "  CommercialDetector publishes state changes to a remote MQTT broker."
+echo ""
+
+MQTT_HOST="${MQTT_HOST:-}"
+ask MQTT_HOST "MQTT broker hostname or IP" ""
+
+if [[ -z "$MQTT_HOST" ]]; then
+    warn "No MQTT host provided. You can configure this later in config.yaml."
+    MQTT_HOST="localhost"
+fi
+
+MQTT_PORT="${MQTT_PORT:-}"
+ask MQTT_PORT "MQTT broker port" "1883"
+
+MQTT_USERNAME="${MQTT_USERNAME:-}"
+ask MQTT_USERNAME "MQTT username (blank for none)" ""
+
+MQTT_PASSWORD="${MQTT_PASSWORD:-}"
+if [[ -n "$MQTT_USERNAME" ]]; then
+    ask_password MQTT_PASSWORD "MQTT password"
+fi
+
+# Whisper
+echo ""
+info "Optional Features"
+echo ""
+
+ENABLE_WHISPER="${ENABLE_WHISPER:-}"
+ask_yesno ENABLE_WHISPER "Install faster-whisper for transcript analysis?" "n"
+
+# systemd service
+SETUP_SERVICE="${SETUP_SERVICE:-}"
+if check_cmd systemctl; then
+    ask_yesno SETUP_SERVICE "Create systemd service (auto-start on boot)?" "y"
+else
+    SETUP_SERVICE="0"
+fi
+
+SERVICE_USER="${SERVICE_USER:-}"
+if [[ "$SETUP_SERVICE" == "1" ]]; then
+    ask SERVICE_USER "User to run the service as" "$(whoami)"
+else
+    SERVICE_USER="${SERVICE_USER:-$(whoami)}"
+fi
+
+# --- Confirm -----------------------------------------------------------------
+
+echo ""
+info "Configuration Summary"
+echo ""
+echo "  Install directory:  $INSTALL_DIR"
+echo "  MQTT broker:        $MQTT_HOST:$MQTT_PORT"
+if [[ -n "$MQTT_USERNAME" ]]; then
+echo "  MQTT auth:          $MQTT_USERNAME / ********"
+else
+echo "  MQTT auth:          (none)"
+fi
+echo "  Whisper:            $([ "$ENABLE_WHISPER" == "1" ] && echo "yes" || echo "no")"
+echo "  Systemd service:    $([ "$SETUP_SERVICE" == "1" ] && echo "yes (user: $SERVICE_USER)" || echo "no")"
+echo ""
+
+read -rp "  Proceed with installation? (Y/n): " confirm
+confirm="${confirm:-y}"
+if [[ ! "$confirm" =~ ^[Yy] ]]; then
+    echo "  Aborted."
+    exit 0
+fi
+
+echo ""
+
+# --- Check for root/sudo when installing to system paths --------------------
+
 SUDO=""
 if [[ "$INSTALL_DIR" == /opt/* || "$INSTALL_DIR" == /usr/* ]]; then
     if [[ $EUID -ne 0 ]]; then
@@ -68,7 +210,7 @@ if [[ "$INSTALL_DIR" == /opt/* || "$INSTALL_DIR" == /usr/* ]]; then
             SUDO="sudo"
             info "Will use sudo for system-level operations"
         else
-            err "Installation to $INSTALL_DIR requires root. Run with sudo or set INSTALL_DIR."
+            err "Installation to $INSTALL_DIR requires root. Run with sudo or choose a different directory."
             exit 1
         fi
     fi
@@ -154,7 +296,7 @@ source .venv/bin/activate
 
 pip install --upgrade pip -q
 pip install -r requirements.txt -q
-ok "Installed Python dependencies (paho-mqtt, pyyaml)"
+ok "Installed Python dependencies"
 
 # --- Optional: Whisper --------------------------------------------------------
 
@@ -169,40 +311,12 @@ if [[ "$ENABLE_WHISPER" == "1" ]]; then
         rm -f config.yaml.bak
         ok "Enabled transcript analysis in config.yaml"
     fi
-else
-    info "Skipping Whisper (set ENABLE_WHISPER=1 to include)"
 fi
 
 # --- MQTT broker configuration -----------------------------------------------
 
-info "Configuring MQTT broker connection..."
+info "Writing MQTT configuration to config.yaml..."
 
-# Interactive prompts if not set via environment
-if [[ -z "$MQTT_HOST" ]]; then
-    echo ""
-    read -rp "  MQTT broker hostname or IP: " MQTT_HOST
-fi
-
-if [[ -z "$MQTT_HOST" ]]; then
-    warn "No MQTT host provided. Using localhost (edit config.yaml later)."
-    MQTT_HOST="localhost"
-fi
-
-if [[ -z "$MQTT_PORT" || "$MQTT_PORT" == "1883" ]]; then
-    read -rp "  MQTT broker port [1883]: " input_port
-    MQTT_PORT="${input_port:-1883}"
-fi
-
-if [[ -z "$MQTT_USERNAME" ]]; then
-    read -rp "  MQTT username (blank for none): " MQTT_USERNAME
-fi
-
-if [[ -n "$MQTT_USERNAME" && -z "$MQTT_PASSWORD" ]]; then
-    read -rsp "  MQTT password: " MQTT_PASSWORD
-    echo ""
-fi
-
-# Write MQTT settings to config.yaml
 .venv/bin/python - "$INSTALL_DIR/config.yaml" "$MQTT_HOST" "$MQTT_PORT" "$MQTT_USERNAME" "$MQTT_PASSWORD" << 'PYEOF'
 import sys, yaml
 from pathlib import Path
@@ -291,38 +405,49 @@ SERVICEEOF
         $SUDO systemctl daemon-reload
         $SUDO systemctl enable commercial-detector
         ok "Service installed and enabled"
-        echo ""
-        info "Start with:   sudo systemctl start commercial-detector"
-        info "Tail logs:    tail -f $LOG_DIR/output.log"
-        info "Error logs:   tail -f $LOG_DIR/error.log"
-        info "Status:       sudo systemctl status commercial-detector"
     fi
-else
-    info "Skipping service setup (set SETUP_SERVICE=1 to include)"
 fi
 
 # --- Done ---------------------------------------------------------------------
 
 echo ""
-info "Installation complete!"
+printf "\033[1;32m"
+echo "  ╔══════════════════════════════════════════════╗"
+echo "  ║        Installation complete!                ║"
+echo "  ╚══════════════════════════════════════════════╝"
+printf "\033[0m"
 echo ""
 echo "  Install dir:  $INSTALL_DIR"
-echo "  Python venv:  $INSTALL_DIR/.venv"
 echo "  Config file:  $INSTALL_DIR/config.yaml"
+echo "  MQTT broker:  $MQTT_HOST:$MQTT_PORT"
 echo ""
-echo "  Quick start:"
-echo "    cd $INSTALL_DIR"
-echo "    source .venv/bin/activate"
+
+echo "  Web dashboard:"
+echo "    http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost"):8080"
 echo ""
-echo "    # Test with a video file"
-echo "    python -m commercial_detector --input video.mp4 --dry-run"
+
+if [[ "$SETUP_SERVICE" == "1" ]]; then
+    echo "  Service commands:"
+    echo "    sudo systemctl start commercial-detector"
+    echo "    sudo systemctl status commercial-detector"
+    echo "    sudo journalctl -u commercial-detector -f"
+    echo ""
+    echo "  Logs:"
+    echo "    tail -f /var/log/commercial-detector/output.log"
+    echo "    tail -f /var/log/commercial-detector/error.log"
+else
+    echo "  Quick start:"
+    echo "    cd $INSTALL_DIR"
+    echo "    source .venv/bin/activate"
+    echo ""
+    echo "    # Test with a video file"
+    echo "    python -m commercial_detector --input video.mp4 --dry-run"
+    echo ""
+    echo "    # Run with live capture"
+    echo "    python -m commercial_detector"
+fi
+
 echo ""
-echo "    # Run with live capture"
-echo "    python -m commercial_detector"
-echo ""
-echo "    # Monitor MQTT output (install mosquitto-clients on any machine)"
-echo "    mosquitto_sub -h <MQTT_HOST> -t 'commercial-detector/#' -v"
-echo ""
-echo "  Full install (with Whisper + systemd service):"
-echo "    curl -sSL https://raw.githubusercontent.com/intrepidsilence/CommercialDetector/main/install.sh | ENABLE_WHISPER=1 SETUP_SERVICE=1 bash"
+echo "  Monitor MQTT output (from any machine with mosquitto-clients):"
+echo "    mosquitto_sub -h $MQTT_HOST -t 'commercial-detector/#' -v"
 echo ""
