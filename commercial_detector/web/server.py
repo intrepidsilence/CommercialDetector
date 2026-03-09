@@ -72,10 +72,6 @@ def create_app(
         cfg = _config_to_dict(config)
         return render_template("config.html", page="config", config=cfg)
 
-    @app.route("/system")
-    def system_page():
-        return render_template("system.html", page="system")
-
     # --- REST API -------------------------------------------------------------
 
     @app.route("/api/snapshot")

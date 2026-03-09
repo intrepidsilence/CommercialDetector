@@ -55,9 +55,6 @@ class TestDashboardRoutes:
         resp = client.get("/config")
         assert resp.status_code == 200
 
-    def test_system_page(self, client):
-        resp = client.get("/system")
-        assert resp.status_code == 200
 
 
 class TestRESTEndpoints:
