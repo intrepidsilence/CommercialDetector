@@ -614,17 +614,20 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         // CPU Temperature
         const tempValue = document.getElementById('temp-value');
-        const tempArc = document.getElementById('temp-arc');
         if (tempValue && data.cpu_temp_c != null) {
           tempValue.textContent = data.cpu_temp_c.toFixed(1);
-          const pct = Math.min(data.cpu_temp_c / 100, 1);
-          const circumference = 2 * Math.PI * 52;
-          tempArc.setAttribute('stroke-dasharray',
-            (pct * circumference) + ' ' + circumference);
-          tempArc.classList.remove('temp-ok', 'temp-warm', 'temp-hot');
-          if (data.cpu_temp_c >= 75) tempArc.classList.add('temp-hot');
-          else if (data.cpu_temp_c >= 60) tempArc.classList.add('temp-warm');
-          else tempArc.classList.add('temp-ok');
+          // SVG gauge (system page only)
+          const tempArc = document.getElementById('temp-arc');
+          if (tempArc) {
+            const pct = Math.min(data.cpu_temp_c / 100, 1);
+            const circumference = 2 * Math.PI * 52;
+            tempArc.setAttribute('stroke-dasharray',
+              (pct * circumference) + ' ' + circumference);
+            tempArc.classList.remove('temp-ok', 'temp-warm', 'temp-hot');
+            if (data.cpu_temp_c >= 75) tempArc.classList.add('temp-hot');
+            else if (data.cpu_temp_c >= 60) tempArc.classList.add('temp-warm');
+            else tempArc.classList.add('temp-ok');
+          }
         }
 
         // Memory
@@ -633,8 +636,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const memTotal = document.getElementById('mem-total');
         const memPctEl = document.getElementById('mem-pct');
         if (data.mem_total_mb != null) {
-          if (memUsed) memUsed.textContent = data.mem_used_mb.toFixed(0) + ' MB';
-          if (memTotal) memTotal.textContent = data.mem_total_mb.toFixed(0) + ' MB';
+          if (memUsed) memUsed.textContent = data.mem_used_mb.toFixed(0);
+          if (memTotal) memTotal.textContent = data.mem_total_mb.toFixed(0);
           if (memPctEl) memPctEl.textContent = data.mem_pct.toFixed(1) + '%';
           if (memBar) memBar.style.width = data.mem_pct.toFixed(1) + '%';
         }
