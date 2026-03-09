@@ -24,7 +24,23 @@ On a Raspberry Pi (or any Debian/Ubuntu system):
 curl -sSL https://raw.githubusercontent.com/intrepidsilence/CommercialDetector/main/install.sh | bash
 ```
 
-This installs system dependencies, clones the repo, creates a Python virtual environment, installs Python packages, and optionally sets up a systemd service.
+This installs system dependencies, clones the repo, creates a Python virtual environment, installs Python packages, prompts for MQTT broker details, and optionally sets up a systemd service.
+
+For non-interactive install with MQTT pre-configured:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/intrepidsilence/CommercialDetector/main/install.sh | \
+  MQTT_HOST=broker.example.com SETUP_SERVICE=1 bash
+```
+
+| Variable | Description |
+|----------|-------------|
+| `MQTT_HOST` | Remote MQTT broker hostname |
+| `MQTT_PORT` | MQTT broker port (default: 1883) |
+| `MQTT_USERNAME` | MQTT username (optional) |
+| `MQTT_PASSWORD` | MQTT password (optional) |
+| `ENABLE_WHISPER` | Set to `1` to install faster-whisper |
+| `SETUP_SERVICE` | Set to `1` to create systemd service |
 
 ## Manual Installation
 
@@ -32,7 +48,7 @@ This installs system dependencies, clones the repo, creates a Python virtual env
 
 - Python 3.11+
 - FFmpeg (with silencedetect, blackdetect, scdet, ebur128 filters — included in standard builds)
-- Mosquitto MQTT broker
+- Access to an MQTT broker (remote)
 - A USB HDMI capture device (for live use)
 
 ### System Dependencies
@@ -40,10 +56,10 @@ This installs system dependencies, clones the repo, creates a Python virtual env
 ```bash
 # Debian / Ubuntu / Raspberry Pi OS
 sudo apt update
-sudo apt install -y ffmpeg mosquitto mosquitto-clients python3 python3-pip python3-venv
+sudo apt install -y ffmpeg python3 python3-pip python3-venv
 
 # macOS (for development/testing)
-brew install ffmpeg mosquitto python@3.11
+brew install ffmpeg python@3.11
 ```
 
 ### Clone and Install
@@ -80,8 +96,8 @@ transcript:
 # Start detection with default config
 python -m commercial_detector
 
-# Monitor MQTT output in another terminal
-mosquitto_sub -t "commercial-detector/#" -v
+# Monitor MQTT output (install mosquitto-clients on any machine)
+mosquitto_sub -h <broker-host> -t "commercial-detector/#" -v
 ```
 
 ### Test with a Recorded File
@@ -149,6 +165,7 @@ A built-in web dashboard provides real-time monitoring at `http://<device-ip>:80
 - **Signal feed**: Auto-scrolling table of all detection signals, filterable by type
 - **Transition history**: Full log of state changes with timestamps and confidence
 - **Configuration editor**: Adjust detection parameters from the browser
+- **Device discovery**: Auto-detect HDMI capture and audio devices
 - **System health**: CPU temperature, memory, disk, MQTT and Whisper status
 
 ### Configuration
@@ -174,14 +191,14 @@ The installer can set up everything including the systemd service and log direct
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/intrepidsilence/CommercialDetector/main/install.sh | \
-  SETUP_SERVICE=1 bash
+  MQTT_HOST=broker.example.com SETUP_SERVICE=1 bash
 ```
 
 For the full stack (Whisper + service):
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/intrepidsilence/CommercialDetector/main/install.sh | \
-  ENABLE_WHISPER=1 SETUP_SERVICE=1 bash
+  MQTT_HOST=broker.example.com ENABLE_WHISPER=1 SETUP_SERVICE=1 bash
 ```
 
 ### Manual Setup
@@ -208,8 +225,7 @@ EOF
 sudo tee /etc/systemd/system/commercial-detector.service << 'EOF'
 [Unit]
 Description=CommercialDetector - TV commercial break detection
-After=network.target mosquitto.service
-Wants=mosquitto.service
+After=network.target
 
 [Service]
 Type=simple
@@ -253,7 +269,7 @@ Logs are rotated daily (7 days retained, compressed) via logrotate.
 python -m pytest tests/ -v
 ```
 
-119 tests, runs in ~0.3 seconds. No external services required.
+133 tests, runs in ~0.3 seconds. No external services required.
 
 ## Hardware
 
@@ -274,6 +290,7 @@ python -m pytest tests/ -v
 commercial_detector/
   config.py              # Configuration dataclasses + YAML loader
   detection_engine.py    # Continuous scoring engine with decay
+  device_discovery.py    # V4L2 + ALSA capture device enumeration
   main.py                # Orchestrator — wires signal source → engine → MQTT
   models.py              # Shared data models (signals, states, transitions)
   mqtt_publisher.py      # paho-mqtt v2.x publisher
@@ -293,7 +310,8 @@ tests/
   test_transcript_analyzer.py    # 22 tests — keyword scoring
   test_mqtt_publisher.py         # 17 tests — MQTT publishing
   test_web_state_manager.py      # 13 tests — web state management
-  test_web_server.py             # 12 tests — Flask routes and API
+  test_web_server.py             # 14 tests — Flask routes and API
+  test_device_discovery.py       # 12 tests — V4L2 + ALSA enumeration
 ```
 
 ## License
