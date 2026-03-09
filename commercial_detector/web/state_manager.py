@@ -37,6 +37,24 @@ class WebStateManager:
         self._current_score: float = 0.0
         self._start_time: float = time.monotonic()
         self._subscribers: list[Queue] = []
+        self._score_ticker: threading.Thread | None = None
+        self._score_ticker_stop = threading.Event()
+        self._latest_pts: float = 0.0
+
+    def start_score_ticker(self, interval: float = 1.0) -> None:
+        """Push a score snapshot every `interval` seconds for the chart."""
+        def _tick():
+            while not self._score_ticker_stop.wait(interval):
+                with self._lock:
+                    pts = self._latest_pts
+                    score = self._current_score
+                if pts > 0:
+                    self.update_score(score, pts)
+
+        self._score_ticker = threading.Thread(
+            target=_tick, name="score-ticker", daemon=True,
+        )
+        self._score_ticker.start()
 
     def push_signal(self, signal: DetectionSignal) -> None:
         entry = {
@@ -61,6 +79,7 @@ class WebStateManager:
     def update_score(self, score: float, timestamp: float) -> None:
         with self._lock:
             self._current_score = score
+            self._latest_pts = max(self._latest_pts, timestamp)
             self._score_history.append([timestamp, score])
 
     def get_snapshot(self) -> dict:

@@ -377,6 +377,13 @@ a:hover { text-decoration: underline; }
 .chart-container {
   height: 300px;
   width: 100%;
+  min-height: 300px;
+}
+.chart-meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 8px;
 }
 
 /* ------------------------------------------------------------------ */

@@ -510,6 +510,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (uplotChart) {
           uplotChart.setData(chartData);
         }
+        // Update entry count indicator
+        const countEl = document.getElementById('chart-entry-count');
+        if (countEl) {
+          countEl.textContent = data.length + ' data points';
+        }
       })
       .catch(() => {});
   }

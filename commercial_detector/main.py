@@ -125,6 +125,7 @@ def run(argv: list[str] | None = None) -> int:
     web_state: Optional[WebStateManager] = None
     if config.web.enabled and not args.no_web:
         web_state = WebStateManager()
+        web_state.start_score_ticker()
         start_web_server(
             config, web_state, config_path=config_path,
             publisher=publisher, transcript=transcript_analyzer,
