@@ -429,6 +429,25 @@ a:hover { text-decoration: underline; }
 }
 .uptime-value { font-size: 1.8rem; font-weight: 700; color: var(--text); }
 
+.mqtt-status {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+.mqtt-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.mqtt-dot-unknown { background: var(--muted); }
+.mqtt-dot-connected { background: #22c55e; }
+.mqtt-dot-error { background: #ef4444; }
+.mqtt-label { color: var(--muted); }
+
 /* ------------------------------------------------------------------ */
 /* Tables                                                              */
 /* ------------------------------------------------------------------ */

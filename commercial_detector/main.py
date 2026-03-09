@@ -80,7 +80,7 @@ def run(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     # Load config
-    config = load_config(args.config)
+    config, config_path = load_config(args.config)
 
     # CLI overrides
     if args.input:
@@ -126,7 +126,7 @@ def run(argv: list[str] | None = None) -> int:
     if config.web.enabled and not args.no_web:
         web_state = WebStateManager()
         start_web_server(
-            config, web_state, config_path=args.config,
+            config, web_state, config_path=config_path,
             publisher=publisher, transcript=transcript_analyzer,
         )
         logger.info("Web dashboard at http://%s:%d", config.web.host, config.web.port)

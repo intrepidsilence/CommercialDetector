@@ -34,6 +34,7 @@ class MqttPublisher:
         )
         self._connected = False
         self._last_state: Optional[DetectionState] = None
+        self._last_error: Optional[str] = None
 
         # Auth
         if config.username:
@@ -60,9 +61,11 @@ class MqttPublisher:
                 self._config.broker_port,
             )
             self._connected = True
+            self._last_error = None
         else:
             logger.warning("MQTT connect failed: %s", rc)
             self._connected = False
+            self._last_error = str(rc)
 
     def _on_disconnect(
         self,
@@ -76,6 +79,15 @@ class MqttPublisher:
         self._connected = False
 
     # -- public API ---------------------------------------------------------
+
+    @property
+    def status(self) -> dict:
+        """Return MQTT connection status for the web UI."""
+        return {
+            "connected": self._connected,
+            "broker": f"{self._config.broker_host}:{self._config.broker_port}",
+            "error": self._last_error,
+        }
 
     def connect(self) -> None:
         """Connect to the MQTT broker. Errors are logged, not raised."""

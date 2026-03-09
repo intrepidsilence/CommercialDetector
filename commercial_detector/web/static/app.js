@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateScoreDisplay(data.score);
         updateSignalCounts(data.signal_counts);
         updateUptime(data.uptime);
+        if (data.mqtt) updateMqttStatus(data.mqtt);
       })
       .catch(() => {});
   }
@@ -182,6 +183,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateUptime(seconds) {
     const el = document.getElementById('uptime-value');
     if (el) el.textContent = formatUptime(seconds);
+  }
+
+  function updateMqttStatus(mqtt) {
+    const dot = document.getElementById('mqtt-dot');
+    const label = document.getElementById('mqtt-label');
+    if (!dot || !label) return;
+
+    if (mqtt.connected) {
+      dot.className = 'mqtt-dot mqtt-dot-connected';
+      label.textContent = 'MQTT: connected to ' + mqtt.broker;
+    } else {
+      dot.className = 'mqtt-dot mqtt-dot-error';
+      label.textContent = 'MQTT: ' + (mqtt.error || 'disconnected');
+    }
   }
 
   // ----------------------------------------------------------------

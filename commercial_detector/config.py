@@ -153,12 +153,15 @@ def _apply_dict(target, data: dict) -> None:
             setattr(target, key, value)
 
 
-def load_config(path: Optional[str] = None) -> AppConfig:
+def load_config(path: Optional[str] = None) -> tuple[AppConfig, Optional[str]]:
     """Load configuration from YAML file, falling back to defaults.
 
     Precedence: YAML file -> defaults.
     If path is None, looks for config.yaml in the current directory,
     then at COMMERCIAL_DETECTOR_CONFIG env var.
+
+    Returns (config, resolved_path) where resolved_path is the path
+    that was actually loaded (or None if no file was found).
     """
     config = AppConfig()
 
@@ -178,4 +181,4 @@ def load_config(path: Optional[str] = None) -> AppConfig:
             if data:
                 _apply_dict(config, data)
 
-    return config
+    return config, path

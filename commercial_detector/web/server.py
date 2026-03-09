@@ -79,7 +79,14 @@ def create_app(
 
     @app.route("/api/snapshot")
     def api_snapshot():
-        return jsonify(state_manager.get_snapshot())
+        snapshot = state_manager.get_snapshot()
+        components = app.extensions.get("cd_components", {})
+        publisher = components.get("publisher")
+        if publisher is not None:
+            snapshot["mqtt"] = publisher.status
+        else:
+            snapshot["mqtt"] = {"connected": False, "broker": None, "error": "disabled (dry-run)"}
+        return jsonify(snapshot)
 
     @app.route("/api/signals")
     def api_signals():
