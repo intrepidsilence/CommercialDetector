@@ -58,7 +58,8 @@ def create_app(
 
     @app.route("/signals")
     def signals_page():
-        return render_template("signals.html", page="signals")
+        signals = state_manager.get_signals(limit=200)
+        return render_template("signals.html", page="signals", signals=signals)
 
     @app.route("/history")
     def history_page():
