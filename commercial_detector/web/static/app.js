@@ -638,4 +638,84 @@ document.addEventListener('DOMContentLoaded', () => {
   function pad2(n) {
     return n < 10 ? '0' + n : '' + n;
   }
+
+  // ----------------------------------------------------------------
+  // Device Detection
+  // ----------------------------------------------------------------
+
+  const detectBtn = document.getElementById('detect-devices-btn');
+  const detectFeedback = document.getElementById('detect-feedback');
+
+  if (detectBtn) {
+    detectBtn.addEventListener('click', () => {
+      detectBtn.disabled = true;
+      detectBtn.textContent = 'Detecting\u2026';
+      if (detectFeedback) {
+        detectFeedback.textContent = '';
+        detectFeedback.className = 'config-feedback';
+      }
+
+      fetch('/api/devices')
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(data => {
+          populateDeviceDropdown('capture-video_device', data.video);
+          populateDeviceDropdown('capture-audio_device', data.audio);
+
+          const total = (data.video || []).length + (data.audio || []).length;
+          if (detectFeedback) {
+            detectFeedback.textContent = total > 0
+              ? 'Found ' + (data.video || []).length + ' video, ' + (data.audio || []).length + ' audio device(s)'
+              : 'No devices found';
+            detectFeedback.className = 'config-feedback ' + (total > 0 ? 'success' : 'error');
+          }
+        })
+        .catch(err => {
+          if (detectFeedback) {
+            detectFeedback.textContent = 'Detection failed: ' + err.message;
+            detectFeedback.className = 'config-feedback error';
+          }
+        })
+        .finally(() => {
+          detectBtn.disabled = false;
+          detectBtn.textContent = 'Detect Devices';
+        });
+    });
+  }
+
+  function populateDeviceDropdown(inputId, devices) {
+    const select = document.getElementById(inputId + '-select');
+    const input = document.getElementById(inputId);
+    if (!select || !input) return;
+
+    // Clear existing options except placeholder
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
+
+    (devices || []).forEach(dev => {
+      const opt = document.createElement('option');
+      opt.value = dev.path;
+      opt.textContent = dev.path + ' \u2014 ' + dev.name;
+      select.appendChild(opt);
+    });
+
+    // Auto-select if current value matches a discovered device
+    const currentVal = input.value;
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === currentVal) {
+        select.selectedIndex = i;
+        break;
+      }
+    }
+
+    // When dropdown changes, update the text input
+    select.onchange = () => {
+      if (select.value) {
+        input.value = select.value;
+      }
+    };
+  }
 });

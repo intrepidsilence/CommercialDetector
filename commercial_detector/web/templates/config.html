@@ -20,15 +20,29 @@
       <div class="config-fields">
         <div class="config-field">
           <label for="capture-video_device">Video Device</label>
-          <input type="text" id="capture-video_device" name="capture.video_device"
-                 value="{{ config.capture.video_device }}" data-restart>
+          <div class="device-select-group">
+            <select id="capture-video_device-select" class="device-dropdown">
+              <option value="">-- Select or type below --</option>
+            </select>
+            <input type="text" id="capture-video_device" name="capture.video_device"
+                   value="{{ config.capture.video_device }}" data-restart>
+          </div>
           <span class="field-desc">V4L2 video device path <span class="restart-badge">restart</span></span>
         </div>
         <div class="config-field">
           <label for="capture-audio_device">Audio Device</label>
-          <input type="text" id="capture-audio_device" name="capture.audio_device"
-                 value="{{ config.capture.audio_device }}" data-restart>
+          <div class="device-select-group">
+            <select id="capture-audio_device-select" class="device-dropdown">
+              <option value="">-- Select or type below --</option>
+            </select>
+            <input type="text" id="capture-audio_device" name="capture.audio_device"
+                   value="{{ config.capture.audio_device }}" data-restart>
+          </div>
           <span class="field-desc">ALSA audio device <span class="restart-badge">restart</span></span>
+        </div>
+        <div class="config-field" style="grid-column: 1 / -1;">
+          <button type="button" class="btn btn-primary" id="detect-devices-btn">Detect Devices</button>
+          <span class="config-feedback" id="detect-feedback"></span>
         </div>
         <div class="config-field">
           <label for="capture-input_format">Input Format</label>

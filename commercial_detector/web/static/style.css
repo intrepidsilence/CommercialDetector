@@ -941,3 +941,22 @@ select {
     font-size: .95rem;
   }
 }
+
+/* Device discovery dropdown + text input combo */
+.device-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.device-dropdown {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+.device-dropdown:focus {
+  border-color: var(--blue);
+  outline: none;
+}
