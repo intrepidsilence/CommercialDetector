@@ -10,6 +10,10 @@
 #   ENABLE_WHISPER=1                       # Install faster-whisper for transcript analysis
 #   SETUP_SERVICE=1                        # Create and enable systemd service
 #   SERVICE_USER=pi                        # User to run the service as
+#   MQTT_HOST=broker.example.com          # Remote MQTT broker hostname
+#   MQTT_PORT=1883                         # Remote MQTT broker port
+#   MQTT_USERNAME=user                     # MQTT username (optional)
+#   MQTT_PASSWORD=pass                     # MQTT password (optional)
 #
 set -euo pipefail
 
@@ -19,6 +23,10 @@ INSTALL_DIR="${INSTALL_DIR:-/opt/commercial-detector}"
 ENABLE_WHISPER="${ENABLE_WHISPER:-0}"
 SETUP_SERVICE="${SETUP_SERVICE:-0}"
 SERVICE_USER="${SERVICE_USER:-$(whoami)}"
+MQTT_HOST="${MQTT_HOST:-}"
+MQTT_PORT="${MQTT_PORT:-1883}"
+MQTT_USERNAME="${MQTT_USERNAME:-}"
+MQTT_PASSWORD="${MQTT_PASSWORD:-}"
 REPO_URL="https://github.com/intrepidsilence/CommercialDetector.git"
 
 # --- Helpers -----------------------------------------------------------------
@@ -73,28 +81,28 @@ info "Installing system dependencies..."
 case "$OS_ID" in
     raspbian|debian|ubuntu|linuxmint|pop)
         $SUDO apt-get update -qq
-        $SUDO apt-get install -y -qq ffmpeg mosquitto mosquitto-clients \
+        $SUDO apt-get install -y -qq ffmpeg \
             python3 python3-pip python3-venv git >/dev/null 2>&1
-        ok "Installed ffmpeg, mosquitto, python3, git"
+        ok "Installed ffmpeg, python3, git"
         ;;
     fedora|rhel|centos|rocky|alma)
-        $SUDO dnf install -y -q ffmpeg mosquitto python3 python3-pip git >/dev/null 2>&1
-        ok "Installed ffmpeg, mosquitto, python3, git"
+        $SUDO dnf install -y -q ffmpeg python3 python3-pip git >/dev/null 2>&1
+        ok "Installed ffmpeg, python3, git"
         ;;
     arch|manjaro)
-        $SUDO pacman -Sy --noconfirm --quiet ffmpeg mosquitto python python-pip git >/dev/null 2>&1
-        ok "Installed ffmpeg, mosquitto, python3, git"
+        $SUDO pacman -Sy --noconfirm --quiet ffmpeg python python-pip git >/dev/null 2>&1
+        ok "Installed ffmpeg, python3, git"
         ;;
     macos)
         if ! check_cmd brew; then
             err "Homebrew required on macOS. Install from https://brew.sh"
             exit 1
         fi
-        brew install ffmpeg mosquitto python@3.11 git 2>/dev/null || true
-        ok "Installed ffmpeg, mosquitto, python3, git"
+        brew install ffmpeg python@3.11 git 2>/dev/null || true
+        ok "Installed ffmpeg, python3, git"
         ;;
     *)
-        warn "Unknown OS ($OS_ID). Please install manually: ffmpeg, mosquitto, python3, git"
+        warn "Unknown OS ($OS_ID). Please install manually: ffmpeg, python3, git"
         ;;
 esac
 
@@ -165,6 +173,63 @@ else
     info "Skipping Whisper (set ENABLE_WHISPER=1 to include)"
 fi
 
+# --- MQTT broker configuration -----------------------------------------------
+
+info "Configuring MQTT broker connection..."
+
+# Interactive prompts if not set via environment
+if [[ -z "$MQTT_HOST" ]]; then
+    echo ""
+    read -rp "  MQTT broker hostname or IP: " MQTT_HOST
+fi
+
+if [[ -z "$MQTT_HOST" ]]; then
+    warn "No MQTT host provided. Using localhost (edit config.yaml later)."
+    MQTT_HOST="localhost"
+fi
+
+if [[ -z "$MQTT_PORT" || "$MQTT_PORT" == "1883" ]]; then
+    read -rp "  MQTT broker port [1883]: " input_port
+    MQTT_PORT="${input_port:-1883}"
+fi
+
+if [[ -z "$MQTT_USERNAME" ]]; then
+    read -rp "  MQTT username (blank for none): " MQTT_USERNAME
+fi
+
+if [[ -n "$MQTT_USERNAME" && -z "$MQTT_PASSWORD" ]]; then
+    read -rsp "  MQTT password: " MQTT_PASSWORD
+    echo ""
+fi
+
+# Write MQTT settings to config.yaml
+.venv/bin/python - "$INSTALL_DIR/config.yaml" "$MQTT_HOST" "$MQTT_PORT" "$MQTT_USERNAME" "$MQTT_PASSWORD" << 'PYEOF'
+import sys, yaml
+from pathlib import Path
+
+config_path, host, port, username, password = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
+p = Path(config_path)
+config = {}
+if p.exists():
+    with open(p) as f:
+        config = yaml.safe_load(f) or {}
+
+config.setdefault("mqtt", {})
+config["mqtt"]["broker_host"] = host
+config["mqtt"]["broker_port"] = int(port)
+if username:
+    config["mqtt"]["username"] = username
+    config["mqtt"]["password"] = password
+else:
+    config["mqtt"].pop("username", None)
+    config["mqtt"].pop("password", None)
+
+with open(p, "w") as f:
+    yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+PYEOF
+
+ok "MQTT broker: $MQTT_HOST:$MQTT_PORT"
+
 # --- Verify installation ------------------------------------------------------
 
 info "Verifying installation..."
@@ -207,8 +272,7 @@ ROTATEEOF
         $SUDO tee /etc/systemd/system/commercial-detector.service > /dev/null << SERVICEEOF
 [Unit]
 Description=CommercialDetector - TV commercial break detection
-After=network.target mosquitto.service
-Wants=mosquitto.service
+After=network.target
 
 [Service]
 Type=simple
@@ -256,8 +320,8 @@ echo ""
 echo "    # Run with live capture"
 echo "    python -m commercial_detector"
 echo ""
-echo "    # Monitor MQTT output"
-echo "    mosquitto_sub -t 'commercial-detector/#' -v"
+echo "    # Monitor MQTT output (install mosquitto-clients on any machine)"
+echo "    mosquitto_sub -h <MQTT_HOST> -t 'commercial-detector/#' -v"
 echo ""
 echo "  Full install (with Whisper + systemd service):"
 echo "    curl -sSL https://raw.githubusercontent.com/intrepidsilence/CommercialDetector/main/install.sh | ENABLE_WHISPER=1 SETUP_SERVICE=1 bash"
