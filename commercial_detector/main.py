@@ -144,6 +144,7 @@ def run(argv: list[str] | None = None) -> int:
     # Main processing loop
     last_heartbeat = time.monotonic()
     signal_count = 0
+    _RETRY_DELAY = 10  # seconds between signal source retries
 
     def _publish_transition(transition):
         logger.info(
@@ -158,62 +159,84 @@ def run(argv: list[str] | None = None) -> int:
         if web_state is not None:
             web_state.push_transition(transition)
 
-    try:
-        with SignalSource(config) as source:
-            logger.info("Signal source started, entering detection loop")
+    def _run_signal_loop():
+        """Run the signal source loop once. Returns on source exit or error."""
+        nonlocal last_heartbeat, signal_count
+        try:
+            with SignalSource(config) as source:
+                logger.info("Signal source started, entering detection loop")
 
-            for detection_signal in source:
+                for detection_signal in source:
+                    if shutdown_requested:
+                        return
+
+                    transition = engine.process(detection_signal)
+
+                    # Push to web dashboard
+                    if web_state is not None:
+                        web_state.push_signal(detection_signal)
+                        web_state.update_score(
+                            engine._state.commercial_score, detection_signal.timestamp
+                        )
+
+                    if transition is not None:
+                        _publish_transition(transition)
+
+                    current_pts = detection_signal.timestamp
+
+                    # Pull new transcript signals from queue into pending buffer
+                    while True:
+                        try:
+                            _pending_transcript.append(transcript_queue.get_nowait())
+                        except Empty:
+                            break
+
+                    # Release pending transcript signals whose timestamp <= current PTS
+                    still_pending = []
+                    for ts in _pending_transcript:
+                        if ts.timestamp <= current_pts:
+                            transition = engine.process(ts)
+                            if web_state is not None:
+                                web_state.push_signal(ts)
+                                web_state.update_score(
+                                    engine._state.commercial_score, ts.timestamp
+                                )
+                            if transition is not None:
+                                _publish_transition(transition)
+                        else:
+                            still_pending.append(ts)
+                    _pending_transcript[:] = still_pending
+
+                    # Periodic heartbeat
+                    now = time.monotonic()
+                    if publisher is not None and (now - last_heartbeat) >= _HEARTBEAT_INTERVAL:
+                        publisher.publish_heartbeat()
+                        last_heartbeat = now
+
+                    signal_count += 1
+
+        except SignalSourceError as exc:
+            logger.error("Signal source failed: %s", exc)
+
+    try:
+        while not shutdown_requested:
+            _run_signal_loop()
+
+            if shutdown_requested:
+                break
+
+            # Signal source exited — wait before retrying so the web UI
+            # stays up for configuration changes.
+            logger.info(
+                "Signal source stopped. Retrying in %ds... "
+                "(web dashboard still available at http://%s:%d)",
+                _RETRY_DELAY, config.web.host, config.web.port,
+            )
+            for _ in range(_RETRY_DELAY):
                 if shutdown_requested:
                     break
+                time.sleep(1)
 
-                transition = engine.process(detection_signal)
-
-                # Push to web dashboard
-                if web_state is not None:
-                    web_state.push_signal(detection_signal)
-                    web_state.update_score(
-                        engine._state.commercial_score, detection_signal.timestamp
-                    )
-
-                if transition is not None:
-                    _publish_transition(transition)
-
-                current_pts = detection_signal.timestamp
-
-                # Pull new transcript signals from queue into pending buffer
-                while True:
-                    try:
-                        _pending_transcript.append(transcript_queue.get_nowait())
-                    except Empty:
-                        break
-
-                # Release pending transcript signals whose timestamp <= current PTS
-                still_pending = []
-                for ts in _pending_transcript:
-                    if ts.timestamp <= current_pts:
-                        transition = engine.process(ts)
-                        if web_state is not None:
-                            web_state.push_signal(ts)
-                            web_state.update_score(
-                                engine._state.commercial_score, ts.timestamp
-                            )
-                        if transition is not None:
-                            _publish_transition(transition)
-                    else:
-                        still_pending.append(ts)
-                _pending_transcript[:] = still_pending
-
-                # Periodic heartbeat
-                now = time.monotonic()
-                if publisher is not None and (now - last_heartbeat) >= _HEARTBEAT_INTERVAL:
-                    publisher.publish_heartbeat()
-                    last_heartbeat = now
-
-                signal_count += 1
-
-    except SignalSourceError as exc:
-        logger.error("Signal source failed: %s", exc)
-        return 1
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     except Exception:
