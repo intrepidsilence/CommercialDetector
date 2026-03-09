@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — CommercialDetector{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+  {# --- State Indicator Card --- #}
+  <section class="card state-card" id="state-card">
+    <div class="state-indicator state-unknown" id="state-indicator">
+      <span class="state-label" id="state-label">UNKNOWN</span>
+      <span class="state-sub" id="state-sub">Waiting for data&hellip;</span>
+    </div>
+  </section>
+
+  {# --- Score Gauge --- #}
+  <section class="card score-card">
+    <h2 class="card-title">Score</h2>
+    <div class="score-value-row">
+      <span class="score-number mono" id="score-value">0.0</span>
+    </div>
+    <div class="score-gauge">
+      <div class="score-gauge-track">
+        <div class="score-gauge-zone score-gauge-program"></div>
+        <div class="score-gauge-zone score-gauge-neutral"></div>
+        <div class="score-gauge-zone score-gauge-commercial"></div>
+        <div class="score-gauge-threshold score-gauge-thresh-program" style="left:28%;" title="Program threshold (-3.0)"></div>
+        <div class="score-gauge-threshold score-gauge-thresh-commercial" style="left:72%;" title="Commercial threshold (8.0)"></div>
+        <div class="score-gauge-pointer" id="score-pointer"></div>
+      </div>
+      <div class="score-gauge-labels">
+        <span class="mono">-10</span>
+        <span class="mono">-3</span>
+        <span class="mono">0</span>
+        <span class="mono">8</span>
+        <span class="mono">15</span>
+      </div>
+    </div>
+  </section>
+
+  {# --- Score Timeline Chart --- #}
+  <section class="card chart-card">
+    <h2 class="card-title">Score Timeline</h2>
+    <div id="score-chart" class="chart-container"></div>
+  </section>
+
+  {# --- Signal Counter Cards --- #}
+  <section class="card counters-card">
+    <h2 class="card-title">Signals</h2>
+    <div class="counter-grid">
+      <div class="counter-item counter-silence">
+        <span class="counter-icon">&#128263;</span>
+        <span class="counter-label">Silence</span>
+        <span class="counter-value mono" id="count-silence_end">0</span>
+      </div>
+      <div class="counter-item counter-black">
+        <span class="counter-icon">&#11035;</span>
+        <span class="counter-label">Black</span>
+        <span class="counter-value mono" id="count-black_start">0</span>
+      </div>
+      <div class="counter-item counter-loudness">
+        <span class="counter-icon">&#128266;</span>
+        <span class="counter-label">Loudness</span>
+        <span class="counter-value mono" id="count-loudness_shift">0</span>
+      </div>
+      <div class="counter-item counter-scene">
+        <span class="counter-icon">&#127916;</span>
+        <span class="counter-label">Scene Cut</span>
+        <span class="counter-value mono" id="count-scene_change">0</span>
+      </div>
+      <div class="counter-item counter-tx-commercial">
+        <span class="counter-icon">&#128176;</span>
+        <span class="counter-label">Tx: Ad</span>
+        <span class="counter-value mono" id="count-transcript_commercial">0</span>
+      </div>
+      <div class="counter-item counter-tx-program">
+        <span class="counter-icon">&#128250;</span>
+        <span class="counter-label">Tx: Prog</span>
+        <span class="counter-value mono" id="count-transcript_program">0</span>
+      </div>
+    </div>
+  </section>
+
+  {# --- Uptime --- #}
+  <section class="card uptime-card">
+    <h2 class="card-title">Uptime</h2>
+    <span class="uptime-value mono" id="uptime-value">00:00:00</span>
+  </section>
+
+</div>
+{% endblock %}

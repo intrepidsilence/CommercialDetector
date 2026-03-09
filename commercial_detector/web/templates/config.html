@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Config — CommercialDetector{% endblock %}
+{% block page_title %}Configuration{% endblock %}
+
+{% block content %}
+<div class="config-page">
+
+  <div class="config-actions">
+    <button class="btn btn-primary" id="config-save-btn">Save Changes</button>
+    <button class="btn btn-danger" id="config-reset-btn">Reset to Defaults</button>
+    <span class="config-feedback" id="config-feedback"></span>
+  </div>
+
+  <form id="config-form" autocomplete="off">
+
+    {# --- Capture --- #}
+    <details class="config-section" open>
+      <summary class="config-section-title">Capture</summary>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="capture-video_device">Video Device</label>
+          <input type="text" id="capture-video_device" name="capture.video_device"
+                 value="{{ config.capture.video_device }}" data-restart>
+          <span class="field-desc">V4L2 video device path <span class="restart-badge">restart</span></span>
+        </div>
+        <div class="config-field">
+          <label for="capture-audio_device">Audio Device</label>
+          <input type="text" id="capture-audio_device" name="capture.audio_device"
+                 value="{{ config.capture.audio_device }}" data-restart>
+          <span class="field-desc">ALSA audio device <span class="restart-badge">restart</span></span>
+        </div>
+        <div class="config-field">
+          <label for="capture-input_format">Input Format</label>
+          <input type="text" id="capture-input_format" name="capture.input_format"
+                 value="{{ config.capture.input_format }}" data-restart>
+          <span class="field-desc">V4L2 pixel format <span class="restart-badge">restart</span></span>
+        </div>
+        <div class="config-field">
+          <label for="capture-input_file">Input File</label>
+          <input type="text" id="capture-input_file" name="capture.input_file"
+                 value="{{ config.capture.input_file or '' }}" data-restart>
+          <span class="field-desc">File path for testing (blank = live capture) <span class="restart-badge">restart</span></span>
+        </div>
+      </div>
+    </details>
+
+    {# --- Signal Source --- #}
+    <details class="config-section" open>
+      <summary class="config-section-title">Signal Source</summary>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="signal_source-silence_noise_db">Silence Noise (dB)</label>
+          <input type="number" step="0.1" id="signal_source-silence_noise_db"
+                 name="signal_source.silence_noise_db"
+                 value="{{ config.signal_source.silence_noise_db }}" data-restart>
+          <span class="field-desc">Noise floor threshold for silencedetect <span class="restart-badge">restart</span></span>
+        </div>
+        <div class="config-field">
+          <label for="signal_source-silence_duration">Silence Duration (s)</label>
+          <input type="number" step="0.1" id="signal_source-silence_duration"
+                 name="signal_source.silence_duration"
+                 value="{{ config.signal_source.silence_duration }}" data-restart>
+          <span class="field-desc">Minimum silence length <span class="restart-badge">restart</span></span>
+        </div>
+        <div class="config-field">
+          <label for="signal_source-black_min_duration">Black Min Duration (s)</label>
+          <input type="number" step="0.01" id="signal_source-black_min_duration"
+                 name="signal_source.black_min_duration"
+                 value="{{ config.signal_source.black_min_duration }}" data-restart>
+          <span class="field-desc">Minimum black frame duration <span class="restart-badge">restart</span></span>
+        </div>
+        <div class="config-field">
+          <label for="signal_source-black_pixel_threshold">Black Pixel Threshold</label>
+          <input type="number" step="0.01" id="signal_source-black_pixel_threshold"
+                 name="signal_source.black_pixel_threshold"
+                 value="{{ config.signal_source.black_pixel_threshold }}" data-restart>
+          <span class="field-desc">Pixel brightness threshold (0-1) <span class="restart-badge">restart</span></span>
+        </div>
+        <div class="config-field">
+          <label for="signal_source-scene_change_threshold">Scene Change Threshold</label>
+          <input type="number" step="0.1" id="signal_source-scene_change_threshold"
+                 name="signal_source.scene_change_threshold"
+                 value="{{ config.signal_source.scene_change_threshold }}" data-restart>
+          <span class="field-desc">Scene change score threshold <span class="restart-badge">restart</span></span>
+        </div>
+      </div>
+    </details>
+
+    {# --- Engine --- #}
+    <details class="config-section" open>
+      <summary class="config-section-title">Engine</summary>
+
+      {# Weights #}
+      <h3 class="config-subgroup">Weights</h3>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="engine-silence_weight">Silence Weight</label>
+          <input type="number" step="0.1" id="engine-silence_weight"
+                 name="engine.silence_weight" value="{{ config.engine.silence_weight }}">
+          <span class="field-desc">Score added on SILENCE_END</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-black_frame_weight">Black Frame Weight</label>
+          <input type="number" step="0.1" id="engine-black_frame_weight"
+                 name="engine.black_frame_weight" value="{{ config.engine.black_frame_weight }}">
+          <span class="field-desc">Score added on BLACK_START</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-loudness_up_weight">Loudness Up Weight</label>
+          <input type="number" step="0.1" id="engine-loudness_up_weight"
+                 name="engine.loudness_up_weight" value="{{ config.engine.loudness_up_weight }}">
+          <span class="field-desc">Score added on loudness jump (ad start)</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-loudness_down_weight">Loudness Down Weight</label>
+          <input type="number" step="0.1" id="engine-loudness_down_weight"
+                 name="engine.loudness_down_weight" value="{{ config.engine.loudness_down_weight }}">
+          <span class="field-desc">Score added on loudness drop (program resumes)</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-scene_change_weight">Scene Change Weight</label>
+          <input type="number" step="0.1" id="engine-scene_change_weight"
+                 name="engine.scene_change_weight" value="{{ config.engine.scene_change_weight }}">
+          <span class="field-desc">Score per individual scene change</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-transcript_commercial_weight">Transcript Commercial Weight</label>
+          <input type="number" step="0.1" id="engine-transcript_commercial_weight"
+                 name="engine.transcript_commercial_weight" value="{{ config.engine.transcript_commercial_weight }}">
+          <span class="field-desc">Score on commercial transcript detection</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-transcript_program_weight">Transcript Program Weight</label>
+          <input type="number" step="0.1" id="engine-transcript_program_weight"
+                 name="engine.transcript_program_weight" value="{{ config.engine.transcript_program_weight }}">
+          <span class="field-desc">Score on program transcript detection</span>
+        </div>
+      </div>
+
+      {# Scoring #}
+      <h3 class="config-subgroup">Scoring</h3>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="engine-score_decay_rate">Score Decay Rate (/s)</label>
+          <input type="number" step="0.05" id="engine-score_decay_rate"
+                 name="engine.score_decay_rate" value="{{ config.engine.score_decay_rate }}">
+          <span class="field-desc">Points per second decay toward zero</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-commercial_threshold">Commercial Threshold</label>
+          <input type="number" step="0.5" id="engine-commercial_threshold"
+                 name="engine.commercial_threshold" value="{{ config.engine.commercial_threshold }}">
+          <span class="field-desc">Score to enter COMMERCIAL state</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-program_threshold">Program Threshold</label>
+          <input type="number" step="0.5" id="engine-program_threshold"
+                 name="engine.program_threshold" value="{{ config.engine.program_threshold }}">
+          <span class="field-desc">Score to enter PROGRAM state</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-max_score">Max Score</label>
+          <input type="number" step="0.5" id="engine-max_score"
+                 name="engine.max_score" value="{{ config.engine.max_score }}">
+          <span class="field-desc">Clamp ceiling</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-min_score">Min Score</label>
+          <input type="number" step="0.5" id="engine-min_score"
+                 name="engine.min_score" value="{{ config.engine.min_score }}">
+          <span class="field-desc">Clamp floor</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-initial_hold_off">Initial Hold-off (s)</label>
+          <input type="number" step="1" id="engine-initial_hold_off"
+                 name="engine.initial_hold_off" value="{{ config.engine.initial_hold_off }}">
+          <span class="field-desc">Ignore signals for first N seconds</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-min_commercial_duration">Min Commercial Duration (s)</label>
+          <input type="number" step="1" id="engine-min_commercial_duration"
+                 name="engine.min_commercial_duration" value="{{ config.engine.min_commercial_duration }}">
+          <span class="field-desc">Debounce: minimum time in COMMERCIAL</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-min_program_duration">Min Program Duration (s)</label>
+          <input type="number" step="1" id="engine-min_program_duration"
+                 name="engine.min_program_duration" value="{{ config.engine.min_program_duration }}">
+          <span class="field-desc">Debounce: minimum time in PROGRAM</span>
+        </div>
+      </div>
+
+      {# Coincidence #}
+      <h3 class="config-subgroup">Coincidence</h3>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="engine-coincidence_window">Coincidence Window (s)</label>
+          <input type="number" step="0.1" id="engine-coincidence_window"
+                 name="engine.coincidence_window" value="{{ config.engine.coincidence_window }}">
+          <span class="field-desc">Seconds for silence+black co-occurrence</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-coincidence_multiplier">Coincidence Multiplier</label>
+          <input type="number" step="0.1" id="engine-coincidence_multiplier"
+                 name="engine.coincidence_multiplier" value="{{ config.engine.coincidence_multiplier }}">
+          <span class="field-desc">Score multiplier for coincident signals</span>
+        </div>
+      </div>
+
+      {# Loudness #}
+      <h3 class="config-subgroup">Loudness</h3>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="engine-loudness_shift_db">Loudness Shift (dB)</label>
+          <input type="number" step="0.5" id="engine-loudness_shift_db"
+                 name="engine.loudness_shift_db" value="{{ config.engine.loudness_shift_db }}">
+          <span class="field-desc">LUFS deviation to emit LOUDNESS_SHIFT</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-loudness_ema_alpha">Loudness EMA Alpha</label>
+          <input type="number" step="0.005" id="engine-loudness_ema_alpha"
+                 name="engine.loudness_ema_alpha" value="{{ config.engine.loudness_ema_alpha }}">
+          <span class="field-desc">EMA smoothing for loudness baseline</span>
+        </div>
+      </div>
+
+      {# Scene Rate #}
+      <h3 class="config-subgroup">Scene Rate</h3>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="engine-scene_rate_window">Scene Rate Window (s)</label>
+          <input type="number" step="1" id="engine-scene_rate_window"
+                 name="engine.scene_rate_window" value="{{ config.engine.scene_rate_window }}">
+          <span class="field-desc">Seconds for rate calculation window</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-scene_rate_threshold">Scene Rate Threshold</label>
+          <input type="number" step="0.5" id="engine-scene_rate_threshold"
+                 name="engine.scene_rate_threshold" value="{{ config.engine.scene_rate_threshold }}">
+          <span class="field-desc">Changes/min for "high rate" boost</span>
+        </div>
+        <div class="config-field">
+          <label for="engine-scene_rate_boost">Scene Rate Boost</label>
+          <input type="number" step="0.1" id="engine-scene_rate_boost"
+                 name="engine.scene_rate_boost" value="{{ config.engine.scene_rate_boost }}">
+          <span class="field-desc">Extra score when scene rate is high</span>
+        </div>
+      </div>
+    </details>
+
+    {# --- MQTT --- #}
+    <details class="config-section">
+      <summary class="config-section-title">MQTT</summary>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="mqtt-broker_host">Broker Host</label>
+          <input type="text" id="mqtt-broker_host" name="mqtt.broker_host"
+                 value="{{ config.mqtt.broker_host }}">
+          <span class="field-desc">MQTT broker hostname</span>
+        </div>
+        <div class="config-field">
+          <label for="mqtt-broker_port">Broker Port</label>
+          <input type="number" id="mqtt-broker_port" name="mqtt.broker_port"
+                 value="{{ config.mqtt.broker_port }}">
+          <span class="field-desc">MQTT broker port</span>
+        </div>
+        <div class="config-field">
+          <label for="mqtt-topic_prefix">Topic Prefix</label>
+          <input type="text" id="mqtt-topic_prefix" name="mqtt.topic_prefix"
+                 value="{{ config.mqtt.topic_prefix }}">
+          <span class="field-desc">MQTT topic prefix</span>
+        </div>
+        <div class="config-field">
+          <label for="mqtt-client_id">Client ID</label>
+          <input type="text" id="mqtt-client_id" name="mqtt.client_id"
+                 value="{{ config.mqtt.client_id }}">
+          <span class="field-desc">MQTT client identifier</span>
+        </div>
+        <div class="config-field">
+          <label for="mqtt-keepalive">Keepalive (s)</label>
+          <input type="number" id="mqtt-keepalive" name="mqtt.keepalive"
+                 value="{{ config.mqtt.keepalive }}">
+          <span class="field-desc">MQTT keepalive interval</span>
+        </div>
+        <div class="config-field">
+          <label for="mqtt-qos">QoS</label>
+          <input type="number" id="mqtt-qos" name="mqtt.qos"
+                 value="{{ config.mqtt.qos }}" min="0" max="2">
+          <span class="field-desc">MQTT quality of service (0, 1, or 2)</span>
+        </div>
+        <div class="config-field">
+          <label for="mqtt-username">Username</label>
+          <input type="text" id="mqtt-username" name="mqtt.username"
+                 value="{{ config.mqtt.username or '' }}">
+          <span class="field-desc">Optional MQTT username</span>
+        </div>
+        <div class="config-field">
+          <label for="mqtt-password">Password</label>
+          <input type="password" id="mqtt-password" name="mqtt.password"
+                 value="{{ config.mqtt.password or '' }}">
+          <span class="field-desc">Optional MQTT password</span>
+        </div>
+      </div>
+    </details>
+
+    {# --- Transcript --- #}
+    <details class="config-section">
+      <summary class="config-section-title">Transcript</summary>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="transcript-enabled">Enabled</label>
+          <select id="transcript-enabled" name="transcript.enabled">
+            <option value="true" {% if config.transcript.enabled %}selected{% endif %}>Yes</option>
+            <option value="false" {% if not config.transcript.enabled %}selected{% endif %}>No</option>
+          </select>
+          <span class="field-desc">Enable Whisper transcript analysis</span>
+        </div>
+        <div class="config-field">
+          <label for="transcript-whisper_model">Whisper Model</label>
+          <input type="text" id="transcript-whisper_model" name="transcript.whisper_model"
+                 value="{{ config.transcript.whisper_model }}">
+          <span class="field-desc">Model size (tiny.en, base.en, small.en)</span>
+        </div>
+        <div class="config-field">
+          <label for="transcript-chunk_duration">Chunk Duration (s)</label>
+          <input type="number" step="1" id="transcript-chunk_duration"
+                 name="transcript.chunk_duration" value="{{ config.transcript.chunk_duration }}">
+          <span class="field-desc">Audio chunk size in seconds</span>
+        </div>
+        <div class="config-field">
+          <label for="transcript-commercial_threshold">Commercial Threshold</label>
+          <input type="number" step="0.1" id="transcript-commercial_threshold"
+                 name="transcript.commercial_threshold" value="{{ config.transcript.commercial_threshold }}">
+          <span class="field-desc">Min score to emit TRANSCRIPT_COMMERCIAL</span>
+        </div>
+        <div class="config-field">
+          <label for="transcript-program_threshold">Program Threshold</label>
+          <input type="number" step="0.1" id="transcript-program_threshold"
+                 name="transcript.program_threshold" value="{{ config.transcript.program_threshold }}">
+          <span class="field-desc">Min score to emit TRANSCRIPT_PROGRAM</span>
+        </div>
+        <div class="config-field">
+          <label for="transcript-program_min_words">Program Min Words</label>
+          <input type="number" id="transcript-program_min_words"
+                 name="transcript.program_min_words" value="{{ config.transcript.program_min_words }}">
+          <span class="field-desc">Words without commercial indicators -> program</span>
+        </div>
+      </div>
+    </details>
+
+    {# --- Web (placeholder for future web config) --- #}
+    <details class="config-section">
+      <summary class="config-section-title">Web</summary>
+      <div class="config-fields">
+        <div class="config-field">
+          <label for="log_level">Log Level</label>
+          <select id="log_level" name="log_level">
+            {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR"] %}
+            <option value="{{ lvl }}" {% if config.log_level == lvl %}selected{% endif %}>{{ lvl }}</option>
+            {% endfor %}
+          </select>
+          <span class="field-desc">Application log level</span>
+        </div>
+      </div>
+    </details>
+
+  </form>
+</div>
+{% endblock %}

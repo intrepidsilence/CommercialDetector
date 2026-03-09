@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CommercialDetector{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+  <script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-logo">&#9673;</span>
+      <span class="sidebar-title">CommercialDetector</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/" class="nav-item{% if page == 'dashboard' %} active{% endif %}">
+        <span class="nav-icon">&#9632;</span> Dashboard
+      </a>
+      <a href="/signals" class="nav-item{% if page == 'signals' %} active{% endif %}">
+        <span class="nav-icon">&#9656;</span> Signals
+      </a>
+      <a href="/history" class="nav-item{% if page == 'history' %} active{% endif %}">
+        <span class="nav-icon">&#8634;</span> History
+      </a>
+      <a href="/config" class="nav-item{% if page == 'config' %} active{% endif %}">
+        <span class="nav-icon">&#9881;</span> Config
+      </a>
+      <a href="/system" class="nav-item{% if page == 'system' %} active{% endif %}">
+        <span class="nav-icon">&#9881;</span> System
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="state-badge-wrapper">
+        <span class="state-badge state-unknown" id="global-state-badge">UNKNOWN</span>
+      </div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+
+  <main class="main-content">
+    <header class="top-bar">
+      <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+      <div class="top-bar-right">
+        <span class="state-badge state-unknown" id="header-state-badge">UNKNOWN</span>
+        <span class="score-readout" id="header-score">0.0</span>
+      </div>
+    </header>
+    <div class="content-area">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

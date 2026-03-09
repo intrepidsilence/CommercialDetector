@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}History — CommercialDetector{% endblock %}
+{% block page_title %}Transition History{% endblock %}
+
+{% block content %}
+<div class="history-page">
+
+  <div class="table-wrap">
+    <table class="data-table" id="history-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Confidence</th>
+          <th>Trigger</th>
+          <th>Duration in State</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody">
+        {% for t in transitions %}
+        <tr>
+          <td class="mono">{{ "%.2f"|format(t.timestamp) }}s</td>
+          <td><span class="state-badge state-{{ t['from'] }}">{{ t['from']|upper }}</span></td>
+          <td><span class="state-badge state-{{ t.to }}">{{ t.to|upper }}</span></td>
+          <td>
+            <div class="confidence-bar">
+              <div class="confidence-fill" style="width:{{ (t.confidence * 100)|int }}%"></div>
+              <span class="confidence-text mono">{{ "%.0f"|format(t.confidence * 100) }}%</span>
+            </div>
+          </td>
+          <td class="mono">{{ t.signals|tojson }}</td>
+          <td class="mono">
+            {% if t.duration is defined %}{{ "%.1f"|format(t.duration) }}s{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}System — CommercialDetector{% endblock %}
+{% block page_title %}System Health{% endblock %}
+
+{% block content %}
+<div class="system-page" hx-get="/api/system" hx-trigger="load, every 5s" hx-target="#system-cards" hx-swap="innerHTML">
+
+  <div class="system-cards" id="system-cards">
+
+    {# --- CPU Temperature --- #}
+    <div class="card system-card">
+      <h2 class="card-title">CPU Temperature</h2>
+      <div class="system-gauge">
+        <div class="temp-ring" id="temp-ring">
+          <svg viewBox="0 0 120 120" class="gauge-svg">
+            <circle cx="60" cy="60" r="52" class="gauge-bg"></circle>
+            <circle cx="60" cy="60" r="52" class="gauge-fill temp-ok" id="temp-arc"
+                    stroke-dasharray="0 327"></circle>
+          </svg>
+          <span class="gauge-value mono" id="temp-value">--</span>
+          <span class="gauge-unit">&deg;C</span>
+        </div>
+      </div>
+    </div>
+
+    {# --- Memory Usage --- #}
+    <div class="card system-card">
+      <h2 class="card-title">Memory Usage</h2>
+      <div class="memory-info">
+        <div class="memory-bar-track">
+          <div class="memory-bar-fill" id="mem-bar" style="width:0%"></div>
+        </div>
+        <div class="memory-labels">
+          <span class="mono" id="mem-used">-- MB</span>
+          <span class="text-dim">/</span>
+          <span class="mono" id="mem-total">-- MB</span>
+        </div>
+        <span class="memory-pct mono" id="mem-pct">--%</span>
+      </div>
+    </div>
+
+    {# --- Load Average --- #}
+    <div class="card system-card">
+      <h2 class="card-title">Load Average</h2>
+      <div class="load-values">
+        <div class="load-item">
+          <span class="load-label">1 min</span>
+          <span class="load-value mono" id="load-1">--</span>
+        </div>
+        <div class="load-item">
+          <span class="load-label">5 min</span>
+          <span class="load-value mono" id="load-5">--</span>
+        </div>
+        <div class="load-item">
+          <span class="load-label">15 min</span>
+          <span class="load-value mono" id="load-15">--</span>
+        </div>
+      </div>
+    </div>
+
+    {# --- Uptime --- #}
+    <div class="card system-card">
+      <h2 class="card-title">System Uptime</h2>
+      <div class="system-uptime">
+        <span class="uptime-value mono" id="sys-uptime">--</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
