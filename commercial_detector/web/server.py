@@ -54,7 +54,8 @@ def create_app(
     @app.route("/dashboard")
     def dashboard():
         snapshot = state_manager.get_snapshot()
-        return render_template("dashboard.html", page="dashboard", **snapshot)
+        signals = state_manager.get_signals(limit=50)
+        return render_template("dashboard.html", page="dashboard", signals=signals, **snapshot)
 
     @app.route("/signals")
     def signals_page():
@@ -243,6 +244,7 @@ def _get_system_info(app: Flask) -> dict:
     transcript = components.get("transcript")
     if transcript is not None:
         info["whisper_running"] = getattr(transcript, "is_running", False)
+        info["whisper_text"] = getattr(transcript, "last_text", "")
     else:
         info["whisper_enabled"] = False
 

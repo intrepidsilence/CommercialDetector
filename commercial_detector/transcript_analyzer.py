@@ -179,6 +179,7 @@ class TranscriptAnalyzer:
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
         self._ffmpeg_proc: Optional[subprocess.Popen] = None
+        self._last_text: str = ""
 
     def start(self) -> bool:
         """Start the transcript analysis thread.
@@ -342,6 +343,7 @@ class TranscriptAnalyzer:
             if not text.strip():
                 continue
 
+            self._last_text = text[:120]
             logger.debug("Transcript @ %.1fs: %s", chunk_timestamp, text[:100])
 
             # Score the transcript
@@ -368,3 +370,8 @@ class TranscriptAnalyzer:
     def is_running(self) -> bool:
         """Check if the analyzer thread is alive."""
         return self._thread is not None and self._thread.is_alive()
+
+    @property
+    def last_text(self) -> str:
+        """Most recent transcript snippet."""
+        return self._last_text

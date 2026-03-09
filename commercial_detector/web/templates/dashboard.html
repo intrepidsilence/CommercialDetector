@@ -6,7 +6,7 @@
 {% block content %}
 <div class="dashboard-grid">
 
-  {# --- Top Row: State + Uptime side by side --- #}
+  {# === Row 1: State | Uptime+MQTT | Signal Counters === #}
   <section class="card state-card" id="state-card">
     <div class="state-indicator state-unknown" id="state-indicator">
       <span class="state-label" id="state-label">UNKNOWN</span>
@@ -21,9 +21,44 @@
       <span class="mqtt-dot mqtt-dot-unknown" id="mqtt-dot"></span>
       <span class="mqtt-label" id="mqtt-label">MQTT: checking&hellip;</span>
     </div>
+    <div class="whisper-status">
+      <span class="whisper-dot whisper-dot-inactive" id="whisper-dot"></span>
+      <span class="whisper-label" id="whisper-label">Whisper: checking&hellip;</span>
+    </div>
+    <div class="whisper-text" id="whisper-text"></div>
   </section>
 
-  {# --- Score Gauge --- #}
+  <section class="card counters-card">
+    <h2 class="card-title">Signals</h2>
+    <div class="counter-grid">
+      <div class="counter-item counter-silence">
+        <span class="counter-label">Silence</span>
+        <span class="counter-value mono" id="count-silence_end">0</span>
+      </div>
+      <div class="counter-item counter-black">
+        <span class="counter-label">Black</span>
+        <span class="counter-value mono" id="count-black_start">0</span>
+      </div>
+      <div class="counter-item counter-loudness">
+        <span class="counter-label">Loudness</span>
+        <span class="counter-value mono" id="count-loudness_shift">0</span>
+      </div>
+      <div class="counter-item counter-scene">
+        <span class="counter-label">Scene</span>
+        <span class="counter-value mono" id="count-scene_change">0</span>
+      </div>
+      <div class="counter-item counter-tx-commercial">
+        <span class="counter-label">Tx: Ad</span>
+        <span class="counter-value mono" id="count-transcript_commercial">0</span>
+      </div>
+      <div class="counter-item counter-tx-program">
+        <span class="counter-label">Tx: Prog</span>
+        <span class="counter-value mono" id="count-transcript_program">0</span>
+      </div>
+    </div>
+  </section>
+
+  {# === Row 2: Score Gauge (full width) === #}
   <section class="card score-card">
     <h2 class="card-title">Score</h2>
     <div class="score-value-row">
@@ -48,49 +83,86 @@
     </div>
   </section>
 
-  {# --- Score Timeline Chart --- #}
+  {# === Row 3: Score Timeline (left) | Signal Log (right) === #}
   <section class="card chart-card">
     <h2 class="card-title">Score Timeline <small class="chart-meta mono" id="chart-entry-count"></small></h2>
     <div id="score-chart" class="chart-container"></div>
   </section>
 
-  {# --- Signal Counter Cards --- #}
-  <section class="card counters-card">
-    <h2 class="card-title">Signals</h2>
-    <div class="counter-grid">
-      <div class="counter-item counter-silence">
-        <span class="counter-icon">&#128263;</span>
-        <span class="counter-label">Silence</span>
-        <span class="counter-value mono" id="count-silence_end">0</span>
+  <section class="card signal-log-card">
+    <h2 class="card-title">Signal Log</h2>
+    <div class="signal-log-controls">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn filter-silence" data-filter="silence_end">Silence</button>
+        <button class="filter-btn filter-black" data-filter="black_start">Black</button>
+        <button class="filter-btn filter-scene" data-filter="scene_change">Scene</button>
       </div>
-      <div class="counter-item counter-black">
-        <span class="counter-icon">&#11035;</span>
-        <span class="counter-label">Black</span>
-        <span class="counter-value mono" id="count-black_start">0</span>
-      </div>
-      <div class="counter-item counter-loudness">
-        <span class="counter-icon">&#128266;</span>
-        <span class="counter-label">Loudness</span>
-        <span class="counter-value mono" id="count-loudness_shift">0</span>
-      </div>
-      <div class="counter-item counter-scene">
-        <span class="counter-icon">&#127916;</span>
-        <span class="counter-label">Scene Cut</span>
-        <span class="counter-value mono" id="count-scene_change">0</span>
-      </div>
-      <div class="counter-item counter-tx-commercial">
-        <span class="counter-icon">&#128176;</span>
-        <span class="counter-label">Tx: Ad</span>
-        <span class="counter-value mono" id="count-transcript_commercial">0</span>
-      </div>
-      <div class="counter-item counter-tx-program">
-        <span class="counter-icon">&#128250;</span>
-        <span class="counter-label">Tx: Prog</span>
-        <span class="counter-value mono" id="count-transcript_program">0</span>
-      </div>
+      <button class="btn btn-secondary btn-sm" id="signal-pause-btn">Pause</button>
+    </div>
+    <div class="table-wrap signal-log-table-wrap">
+      <table class="data-table data-table-compact" id="signal-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Wt</th>
+          </tr>
+        </thead>
+        <tbody id="signal-tbody">
+          {% for s in signals %}
+          <tr class="signal-row" data-type="{{ s.type }}">
+            <td class="mono">{{ "%.1f"|format(s.timestamp) }}s</td>
+            <td><span class="signal-type-badge signal-{{ s.type }}">{{ s.type }}</span></td>
+            <td class="mono">{{ "%.2f"|format(s.value) }}</td>
+            <td class="mono">—</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </section>
 
+  {# === Row 4: System Health (full width) === #}
+  <section class="card system-card-row" id="system-cards">
+    <h2 class="card-title">System Health</h2>
+    <div class="system-health-grid">
+
+      <div class="sys-metric">
+        <div class="sys-metric-label">CPU Temp</div>
+        <div class="sys-metric-value mono" id="temp-value">--</div>
+        <div class="sys-metric-unit">&deg;C</div>
+      </div>
+
+      <div class="sys-metric">
+        <div class="sys-metric-label">Memory</div>
+        <div class="sys-metric-value mono" id="mem-pct">--%</div>
+        <div class="memory-bar-track memory-bar-sm">
+          <div class="memory-bar-fill" id="mem-bar" style="width:0%"></div>
+        </div>
+        <div class="sys-metric-detail mono"><span id="mem-used">--</span> / <span id="mem-total">--</span> MB</div>
+      </div>
+
+      <div class="sys-metric">
+        <div class="sys-metric-label">Load Avg</div>
+        <div class="sys-metric-value mono"><span id="load-1">--</span></div>
+        <div class="sys-metric-detail mono"><span id="load-5">--</span> / <span id="load-15">--</span></div>
+      </div>
+
+      <div class="sys-metric">
+        <div class="sys-metric-label">Uptime</div>
+        <div class="sys-metric-value mono" id="sys-uptime">--</div>
+      </div>
+
+      <div class="sys-metric">
+        <div class="sys-metric-label">Disk</div>
+        <div class="sys-metric-value mono" id="disk-used">--</div>
+        <div class="sys-metric-detail mono">/ <span id="disk-total">--</span> GB</div>
+      </div>
+
+    </div>
+  </section>
 
 </div>
 {% endblock %}

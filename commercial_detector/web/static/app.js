@@ -654,14 +654,54 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sysUptime && data.system_uptime != null) {
           sysUptime.textContent = formatUptime(data.system_uptime);
         }
+
+        // Disk
+        const diskUsed = document.getElementById('disk-used');
+        const diskTotal = document.getElementById('disk-total');
+        if (diskUsed && data.disk_used_gb != null) {
+          diskUsed.textContent = data.disk_used_gb + ' GB';
+        }
+        if (diskTotal && data.disk_total_gb != null) {
+          diskTotal.textContent = data.disk_total_gb;
+        }
+
+        // Whisper status
+        updateWhisperStatus(data);
       })
       .catch(() => {});
   }
 
-  // Poll system info if on the system page
+  // Poll system info if system cards are visible (dashboard or system page)
   if (document.getElementById('system-cards')) {
     fetchSystemInfo();
     setInterval(fetchSystemInfo, 5000);
+  }
+
+  // ----------------------------------------------------------------
+  // Whisper / Transcript status
+  // ----------------------------------------------------------------
+
+  function updateWhisperStatus(data) {
+    const dot = document.getElementById('whisper-dot');
+    const label = document.getElementById('whisper-label');
+    const text = document.getElementById('whisper-text');
+    if (!dot) return;
+
+    if (data.whisper_running) {
+      dot.className = 'whisper-dot whisper-dot-active';
+      if (label) label.textContent = 'Whisper: active';
+    } else if (data.whisper_enabled === false) {
+      dot.className = 'whisper-dot whisper-dot-inactive';
+      if (label) label.textContent = 'Whisper: disabled';
+    } else {
+      dot.className = 'whisper-dot whisper-dot-inactive';
+      if (label) label.textContent = 'Whisper: inactive';
+    }
+
+    const textEl = document.getElementById('whisper-text');
+    if (textEl && data.whisper_text) {
+      textEl.textContent = '"' + data.whisper_text + '"';
+    }
   }
 
   // ----------------------------------------------------------------

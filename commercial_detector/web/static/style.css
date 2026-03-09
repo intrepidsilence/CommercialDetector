@@ -234,8 +234,8 @@ a:hover { text-decoration: underline; }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
 }
 
 .state-card {
@@ -248,7 +248,7 @@ a:hover { text-decoration: underline; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 24px 16px;
   text-align: center;
   transition: background .4s ease, box-shadow .4s ease;
 }
@@ -286,7 +286,7 @@ a:hover { text-decoration: underline; }
 
 .state-label {
   font-family: var(--mono);
-  font-size: 2.6rem;
+  font-size: 1.8rem;
   font-weight: 800;
   letter-spacing: .06em;
   transition: color .4s;
@@ -306,7 +306,7 @@ a:hover { text-decoration: underline; }
 /* Dashboard: Score gauge                                              */
 /* ------------------------------------------------------------------ */
 
-.score-card { grid-column: 1 / -1; }
+.score-card { grid-column: 1 / -1; padding: 16px 22px; }
 
 .score-value-row {
   text-align: center;
@@ -372,12 +372,13 @@ a:hover { text-decoration: underline; }
 /* Dashboard: Chart                                                    */
 /* ------------------------------------------------------------------ */
 
-.chart-card { grid-column: 1 / -1; }
+.chart-card { grid-column: 1 / 2; }
+.signal-log-card { grid-column: 2 / 4; }
 
 .chart-container {
-  height: 300px;
+  height: 280px;
   width: 100%;
-  min-height: 300px;
+  min-height: 280px;
 }
 .chart-meta {
   font-size: 0.75rem;
@@ -390,20 +391,24 @@ a:hover { text-decoration: underline; }
 /* Dashboard: Signal counters                                          */
 /* ------------------------------------------------------------------ */
 
-.counters-card { grid-column: 1 / -1; }
+.counters-card {
+  display: flex;
+  flex-direction: column;
+}
 
 .counter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  flex: 1;
 }
 
 .counter-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 16px 10px;
+  gap: 2px;
+  padding: 8px 6px;
   background: var(--bg);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -412,9 +417,9 @@ a:hover { text-decoration: underline; }
 
 .counter-item:hover { border-color: var(--text-dim); }
 
-.counter-icon { font-size: 1.5rem; }
-.counter-label { font-size: .75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
-.counter-value { font-size: 1.6rem; font-weight: 700; }
+.counter-icon { font-size: 1.2rem; }
+.counter-label { font-size: .65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
+.counter-value { font-size: 1.2rem; font-weight: 700; }
 
 .counter-silence   .counter-value { color: var(--blue); }
 .counter-black     .counter-value { color: var(--purple); }
@@ -897,6 +902,122 @@ select {
 .system-uptime .uptime-value { font-size: 1.6rem; }
 
 /* ------------------------------------------------------------------ */
+/* Dashboard: Signal log (inline)                                      */
+/* ------------------------------------------------------------------ */
+
+.signal-log-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.signal-log-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.signal-log-controls .filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.signal-log-controls .filter-btn {
+  padding: 3px 8px;
+  font-size: .7rem;
+}
+
+.signal-log-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 260px;
+}
+
+.data-table-compact td { padding: 5px 8px; font-size: .8rem; }
+.data-table-compact th { padding: 6px 8px; font-size: .7rem; }
+.data-table-compact .signal-type-badge { font-size: .65rem; padding: 1px 6px; }
+
+.btn-sm { padding: 4px 10px; font-size: .75rem; }
+
+/* ------------------------------------------------------------------ */
+/* Dashboard: System health row                                        */
+/* ------------------------------------------------------------------ */
+
+.system-card-row { grid-column: 1 / -1; }
+
+.system-health-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.sys-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.sys-metric-label {
+  font-size: .7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-dim);
+}
+
+.sys-metric-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.sys-metric-unit {
+  font-size: .75rem;
+  color: var(--text-dim);
+}
+
+.sys-metric-detail {
+  font-size: .72rem;
+  color: var(--text-dim);
+}
+
+.memory-bar-sm {
+  width: 80%;
+  height: 8px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dashboard: Whisper status                                           */
+/* ------------------------------------------------------------------ */
+
+.whisper-status {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.whisper-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.whisper-dot-active { background: var(--green); }
+.whisper-dot-inactive { background: var(--text-dim); }
+.whisper-label { color: var(--text-dim); }
+.whisper-text { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; text-align: center; }
+
+/* ------------------------------------------------------------------ */
 /* uPlot dark theme overrides                                          */
 /* ------------------------------------------------------------------ */
 
@@ -938,16 +1059,24 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .chart-card,
+  .signal-log-card,
+  .system-card-row { grid-column: 1 / -1; }
+
+  .system-health-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .config-fields {
     grid-template-columns: 1fr;
   }
 
   .state-label {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
   }
 
   .state-indicator {
-    padding: 32px 16px;
+    padding: 20px 12px;
   }
 
   .counter-grid {
