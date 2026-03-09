@@ -57,11 +57,6 @@ def create_app(
         signals = state_manager.get_signals(limit=50)
         return render_template("dashboard.html", page="dashboard", signals=signals, **snapshot)
 
-    @app.route("/signals")
-    def signals_page():
-        signals = state_manager.get_signals(limit=200)
-        return render_template("signals.html", page="signals", signals=signals)
-
     @app.route("/history")
     def history_page():
         transitions = state_manager.get_transitions()

@@ -43,10 +43,6 @@ class TestDashboardRoutes:
         assert resp.status_code == 200
         assert b"CommercialDetector" in resp.data
 
-    def test_signals_page(self, client):
-        resp = client.get("/signals")
-        assert resp.status_code == 200
-
     def test_history_page(self, client):
         resp = client.get("/history")
         assert resp.status_code == 200
